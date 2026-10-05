@@ -1,0 +1,44 @@
+[
+  {
+    "clave": "0",
+    "nombre": "Suma de estratos",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": false
+  },
+  {
+    "clave": "1",
+    "nombre": "0 a 10",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": false
+  },
+  {
+    "clave": "2",
+    "nombre": "11 a 50",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": false
+  },
+  {
+    "clave": "3",
+    "nombre": "51 a 250",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": false
+  },
+  {
+    "clave": "4",
+    "nombre": "251 y más",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": false
+  },
+  {
+    "clave": "99",
+    "nombre": "Agrupados por confidencialidad",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": false
+  }
+]

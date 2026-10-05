@@ -1,0 +1,1049 @@
+[
+  {
+    "clave": "UE",
+    "nombre": "Unidades económicas",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": false,
+    "definicion": "Son las unidades estadísticas sobre las cuales se recopilan datos, se dedican principalmente a un tipo de actividad de manera permanente en construcciones e instalaciones fijas, combinando acciones y recursos bajo el control de una sola entidad propietaria o controladora, para llevar a cabo producción de bienes y servicios, sea con fines mercantiles o no. Se definen por sector de acuerdo con la disponibilidad de registros contables y la necesidad de obtener información con el mayor nivel de precisión analítica."
+  },
+  {
+    "clave": "AA",
+    "nombre": "Características principales",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": true
+  },
+  {
+    "clave": "AB",
+    "nombre": "Inversión total",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": true
+  },
+  {
+    "clave": "AC",
+    "nombre": "Producción bruta total",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": true
+  },
+  {
+    "clave": "AD",
+    "nombre": "Personal ocupado total",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": true
+  },
+  {
+    "clave": "AE",
+    "nombre": "Remuneraciones",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": true
+  },
+  {
+    "clave": "AF",
+    "nombre": "Gastos por consumo de bienes y servicios",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": true
+  },
+  {
+    "clave": "AG",
+    "nombre": "Ingresos por suministro de bienes y servicios",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": true
+  },
+  {
+    "clave": "AH",
+    "nombre": "Existencias",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": true
+  },
+  {
+    "clave": "AI",
+    "nombre": "Activos fijos",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": true
+  },
+  {
+    "clave": "H001A",
+    "nombre": "Personal ocupado total",
+    "padre": "AA",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende a todas las personas que trabajaron durante el periodo de referencia dependiendo contractualmente o no de la unidad económica, sujetas a su dirección y control."
+  },
+  {
+    "clave": "H000A",
+    "nombre": "Personal dependiente de la razón social total",
+    "padre": "AA",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende al personal contratado directamente por esta razón social, de planta y eventual y no remunerado, sea o no sindicalizado, que trabajó durante el periodo de referencia para la unidad económica, sujeto a su dirección y control, cubriendo como mínimo una tercera parte de la jornada laboral de la misma. Incluye: al personal que trabajó fuera de la unidad económica bajo su control laboral y legal; a las y los trabajadores a destajo y en huelga; personas con licencia por enfermedad, vacaciones o permiso temporal. Excluye: personas pensionadas y jubiladas; personal con licencia ilimitada y personal que trabajó exclusivamente por honorarios o comisiones sin recibir un sueldo o salario fijo; así como el personal de la empresa contratada para proporcionar un servicio, como limpieza, jardinería o vigilancia, entre otros."
+  },
+  {
+    "clave": "H010A",
+    "nombre": "Personal remunerado total",
+    "padre": "AA",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende a todas las personas que trabajaron durante el periodo de referencia dependiendo contractualmente de la unidad económica, sujetas a su dirección y control, a cambio de una remuneración fija y periódica."
+  },
+  {
+    "clave": "H020A",
+    "nombre": "Personas propietarias, familiares y otro personal no remunerado total",
+    "padre": "AA",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son las personas que trabajaron bajo la dirección y control de la unidad económica, cubriendo como mínimo una tercera parte de la jornada laboral de la misma, sin recibir un sueldo o salario fijo de forma periódica. Incluye: a personas propietarias, sus familiares, socias y socios activos; personal que labora para la unidad económica percibiendo exclusivamente propinas, personal prestador de servicio social y becado por el sistema nacional de empleo o en programas de capacitación y entrenamiento; personal que trabajó haciendo méritos para ocupar una plaza y personas voluntarias. Excluye: a las personas que prestaron sus servicios profesionales o técnicos y cobraron honorarios por esto, personas pensionadas y jubiladas y al personal suministrado por otra razón social."
+  },
+  {
+    "clave": "I000A",
+    "nombre": "Personal no dependiente de la razón social total",
+    "padre": "AA",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son todas las personas que trabajaron para la unidad económica durante el periodo de referencia, pero que dependían contractualmente de otra razón social o laboraron por cuenta propia para la unidad económica y realizaron labores ligadas con la producción, comercialización, administración y contabilidad, entre otras, cubriendo como mínimo una tercera parte de la jornada laboral de la unidad económica. Excluye: al personal que trabajó en la unidad económica por la contratación de servicios de vigilancia, limpieza y jardinería."
+  },
+  {
+    "clave": "J000A",
+    "nombre": "Total de remuneraciones (millones de pesos)",
+    "padre": "AA",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son todos los pagos y aportaciones normales y extraordinarias, en dinero y especie, antes de cualquier deducción, para retribuir el trabajo del personal dependiente de la razón social, en forma de salarios y sueldos, prestaciones sociales y utilidades repartidas al personal, ya sea que este pago se calcule sobre la base de una jornada de trabajo o por la cantidad de trabajo desarrollado (destajo), o mediante un salario base que se complementa con comisiones por ventas u otras actividades. Incluye: las contribuciones patronales a regímenes de seguridad social, el pago realizado al personal con licencia y permiso temporal. Excluye: los pagos por liquidaciones o indemnizaciones, pagos a terceros por el suministro de personal ocupado; pagos exclusivamente de comisiones para aquel personal que no recibió un sueldo o salario fijo; pagos de honorarios por servicios profesionales contratados de manera infrecuente."
+  },
+  {
+    "clave": "K000A",
+    "nombre": "Total de gastos por consumo de bienes y servicios (millones de pesos)",
+    "padre": "AA",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor de todos los bienes y servicios consumidos por la unidad económica para realizar sus operaciones el periodo de referencia, independientemente del periodo en que hayan sido comprados o adquiridos, considerando el valor de los bienes y servicios que recibió de otros establecimientos de la misma empresa (con o sin costo) para su uso en las actividades de producción u operación de la unidad económica. Incluye: el valor de los bienes y servicios que recibió en transferencia para su consumo o transformación y fueron efectivamente consumidos, en sus actividades productivas o relacionadas con las mismas. Excluye: los gastos fiscales, financieros, donaciones y los gastos de las empresas o razones sociales controladas por esta empresa."
+  },
+  {
+    "clave": "M000A",
+    "nombre": "Total de ingresos por suministro de bienes y servicios (millones de pesos)",
+    "padre": "AA",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el monto que obtuvo la unidad económica durante el periodo de referencia, por todas aquellas actividades de producción de bienes, comercialización de mercancías y prestación de servicios. Incluye: el valor de los bienes y servicios transferidos a otras unidades económicas de la misma empresa, valorados a precio de venta, más todas las erogaciones o impuestos cobrados a las y los compradores. Excluye: los ingresos financieros, subsidios, cuotas, aportaciones y venta de activos fijos."
+  },
+  {
+    "clave": "A111A",
+    "nombre": "Producción bruta total (millones de pesos)",
+    "padre": "AA",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor de todos los bienes y servicios producidos o comercializados por la unidad económica como resultado del ejercicio de sus actividades, comprendiendo el valor de los productos elaborados; el margen bruto de comercialización; las obras ejecutadas; los ingresos por la prestación de servicios, así como el alquiler de maquinaria y equipo, y otros bienes muebles e inmuebles; el valor de los activos fijos producidos para uso propio, entre otros. Incluye: la variación de existencias de productos en proceso. Los bienes y servicios se valoran a precios productor."
+  },
+  {
+    "clave": "A121A",
+    "nombre": "Consumo intermedio (millones de pesos)",
+    "padre": "AA",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el importe de los bienes y servicios consumidos por la unidad económica para el desarrollo de sus actividades, tanto los materiales que se integraron físicamente a los productos obtenidos (bienes y servicios), como todos aquellos que proporcionaron las condiciones propicias para llevar a cabo la producción. Incluye: los gastos por contratación de servicios de vigilancia, intendencia, jardinería; pagos a terceros por servicios de reparación y mantenimiento corriente; los gastos por la reparación de activos fijos para uso propio, y aquéllos para mejorar las condiciones de trabajo. Excluye: las mercancías compradas para su reventa. Los bienes y servicios se valoran a precios comprador."
+  },
+  {
+    "clave": "A131A",
+    "nombre": "Valor agregado censal bruto (millones de pesos)",
+    "padre": "AA",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor de la producción que se añade durante el proceso de trabajo por la actividad creadora y de transformación del personal ocupado, el capital y la organización (factores de la producción), ejercida sobre los materiales que se consumen en la realización de la actividad económica. Aritméticamente, el Valor Agregado Censal Bruto (VACB) resulta de restar a la Producción Bruta Total el Consumo Intermedio. Se le llama bruto porque no se le ha deducido el consumo de capital fijo."
+  },
+  {
+    "clave": "A211A",
+    "nombre": "Inversión total (millones de pesos)",
+    "padre": "AA",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el incremento en activos, insumos y productos que experimentaron las unidades económicas durante el año de referencia. Se obtiene sumando a la Formación Bruta de Capital Fijo la Variación de Existencias."
+  },
+  {
+    "clave": "A221A",
+    "nombre": "Formación bruta de capital fijo (millones de pesos)",
+    "padre": "AA",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor de los activos fijos comprados y adquiridos por la unidad económica (hayan sido nacionales o importados, nuevos o usados), menos el valor de las ventas de activos fijos realizadas. Incluye: como parte de las compras de activos fijos, el valor de las renovaciones, mejoras y reformas mayores realizadas a los activos fijos que prolongaron su vida útil en más de un año o aumentaron su productividad y los activos fijos producidos por la unidad económica para uso propio."
+  },
+  {
+    "clave": "P000C",
+    "nombre": "Variación total de existencias (millones de pesos)",
+    "padre": "AA",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Diferencia entre el valor en libros, al final del periodo de estudio, del total de existencias propiedad de la unidad económica, respecto del total del valor de las existencias que tenía al inicio del periodo."
+  },
+  {
+    "clave": "Q000A",
+    "nombre": "Acervo total de activos fijos (millones de pesos)",
+    "padre": "AA",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor actualizado de todos aquellos bienes, propiedad de la unidad económica –cuya vida útil es superior a un año– que tienen la capacidad de producir o proporcionar las condiciones necesarias para la generación de bienes y servicios. Incluye: los activos fijos propiedad del establecimiento alquilados a terceros; los que utiliza normalmente el establecimiento, aunque sean asignados temporalmente a otros establecimientos de la misma empresa; los que produce el establecimiento para uso propio y los activos fijos que obtuvo en arrendamiento financiero. Excluye: los activos fijos que utilizan normalmente otros establecimientos de la misma empresa, pero que son asignados al establecimiento en estudio; los activos fijos en arrendamiento puro; las reparaciones menores de los activos fijos, los gastos por reparación y mantenimiento corriente. Valoración de los activos fijos. Debe reportarse a valor actual o costo de reposición, tomando en consideración las condiciones en las que se encontraban el último día del periodo de referencia, la pérdida de valor por su uso u obsolescencia, así como los cambios de su valor por variaciones en los precios y el tipo de cambio."
+  },
+  {
+    "clave": "Q000B",
+    "nombre": "Depreciación total de activos fijos (millones de pesos)",
+    "padre": "AA",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende la pérdida de valor durante el periodo de referencia, por el uso u obsolescencia de los activos fijos propiedad de la unidad económica. Nota: No se considera la depreciación acumulada o histórica."
+  },
+  {
+    "clave": "A700A",
+    "nombre": "Total de gastos (millones de pesos)",
+    "padre": "AA",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el monto total que la unidad económica destinó al consumo de bienes, servicios y otras erogaciones financieras, fiscales y donaciones sin contrapartida a personas físicas y morales."
+  },
+  {
+    "clave": "A800A",
+    "nombre": "Total de ingresos (millones de pesos)",
+    "padre": "AA",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el monto total que la unidad económica obtuvo por la venta de bienes, servicios, intereses, otros ingresos financieros y las donaciones recibidas sin contrapartida."
+  },
+  {
+    "clave": "A211A",
+    "nombre": "Inversión total (millones de pesos)",
+    "padre": "AB",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el incremento en activos, insumos y productos que experimentaron las unidades económicas durante el año de referencia. Se obtiene sumando a la Formación Bruta de Capital Fijo la Variación de Existencias."
+  },
+  {
+    "clave": "A221A",
+    "nombre": "Formación bruta de capital fijo (millones de pesos)",
+    "padre": "AB",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor de los activos fijos comprados y adquiridos por la unidad económica (hayan sido nacionales o importados, nuevos o usados), menos el valor de las ventas de activos fijos realizadas. Incluye: como parte de las compras de activos fijos, el valor de las renovaciones, mejoras y reformas mayores realizadas a los activos fijos que prolongaron su vida útil en más de un año o aumentaron su productividad y los activos fijos producidos por la unidad económica para uso propio."
+  },
+  {
+    "clave": "Q000C",
+    "nombre": "Compra y adquisición de activos fijos y reformas mayores (millones de pesos)",
+    "padre": "AB",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el monto de las compras, adquisiciones y transferencias recibidas de activos fijos a valor actual, nuevos o usados, que durante el año realizó la unidad económica, se obtiene sumando todas las erogaciones en que incurrió para llevar e instalar los activos fijos en la unidad económica y su puesta en funcionamiento. Incluye: las mejoras, reformas y renovaciones de importancia que realizó la unidad económica en sus activos fijos para incrementar la productividad o vida útil de estos y la producción de activos fijos para uso propio. Excluye: las reparaciones y mantenimiento corriente de los activos fijos."
+  },
+  {
+    "clave": "Q000D",
+    "nombre": "Ventas totales de activos fijos (millones de pesos)",
+    "padre": "AB",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el monto de las ventas realizadas durante el periodo de referencia, de los activos fijos que fueron propiedad de la unidad económica. Incluye: el valor de los activos fijos que fueron dados de baja y que se conservan en la unidad económica, pero que por su nivel de obsolescencia o deterioro no son utilizados, así como el valor de los activos fijos perdidos por robo y que no fueron recuperados por el seguro."
+  },
+  {
+    "clave": "P000C",
+    "nombre": "Variación total de existencias (millones de pesos)",
+    "padre": "AB",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Diferencia entre el valor en libros, al final del periodo de estudio, del total de existencias propiedad de la unidad económica, respecto del total del valor de las existencias que tenía al inicio del periodo."
+  },
+  {
+    "clave": "P000A",
+    "nombre": "Total de inventario inicial (millones de pesos)",
+    "padre": "AB",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor en libros (saldo en el inventario inicial) de los bienes que no habían sido terminados, consumidos o vendidos, así como los productos terminados que se encontraban formando parte de sus inventarios en almacén, lugares de exhibición o venta durante las fechas señaladas, independientemente del periodo en que hayan sido producidos o adquiridos. Excluye: los activos fijos."
+  },
+  {
+    "clave": "P000B",
+    "nombre": "Total de inventario final (millones de pesos)",
+    "padre": "AB",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor en libros (saldo en el inventario final) de los bienes que no habían sido terminados, consumidos o vendidos, así como los productos terminados que se encontraban formando parte de sus inventarios en almacén, lugares de exhibición o venta durante las fechas señaladas, independientemente del periodo en que hayan sido producidos o adquiridos. Excluye: los activos fijos."
+  },
+  {
+    "clave": "A111A",
+    "nombre": "Producción bruta total (millones de pesos)",
+    "padre": "AC",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor de todos los bienes y servicios producidos o comercializados por la unidad económica como resultado del ejercicio de sus actividades, comprendiendo el valor de los productos elaborados; el margen bruto de comercialización; las obras ejecutadas; los ingresos por la prestación de servicios, así como el alquiler de maquinaria y equipo, y otros bienes muebles e inmuebles; el valor de los activos fijos producidos para uso propio, entre otros. Incluye: la variación de existencias de productos en proceso. Los bienes y servicios se valoran a precios productor."
+  },
+  {
+    "clave": "O010A",
+    "nombre": "Valor de productos elaborados, generados y extraídos (millones de pesos)",
+    "padre": "AC",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor de los bienes que transformó, procesó o benefició la unidad económica durante el periodo de referencia, con fines de lucro o no. Incluye la producción defectuosa y los productos maquilados por otra razón social para la unidad económica, así como el valor de la energía eléctrica generada, del agua suministrada, de las obras de construcción realizadas como contratista principal y subcontratista; el valor del petróleo crudo, del gas natural, de los condensados, de los minerales extraídos y beneficiados y de la producción pesquera o acuícola."
+  },
+  {
+    "clave": "O020A",
+    "nombre": "Activos fijos producidos para uso propio (millones de pesos)",
+    "padre": "AC",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor de la producción de los bienes muebles e inmuebles o las mejoras que aumentan su productividad o vida útil, siempre que hayan sido realizadas por la unidad económica con recursos y personal propios, para ser utilizados por la misma unidad económica, valorados de acuerdo a la cantidad de materiales y mano de obra utilizada durante el periodo. Incluye: el valor de los activos fijos producidos para la generación de energía eléctrica en la unidad económica. Excluye: los gastos por reparación y mantenimiento corriente y las compras y reformas mayores cuando se contrata y paga a un proveedor para su producción."
+  },
+  {
+    "clave": "M700A",
+    "nombre": "Ingresos por maquilar o transformar materias primas propiedad de terceros (millones de pesos)",
+    "padre": "AC",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son los ingresos obtenidos por la unidad económica por la fabricación, ensamble u otro tipo de transformación de las materias primas propiedad de terceros. Incluye: los ingresos por la transformación de insumos importados temporalmente que fueron transferidos a la unidad económica. Excluye: el valor de los insumos consumidos."
+  },
+  {
+    "clave": "P030C",
+    "nombre": "Variación de inventarios de productos en proceso (millones de pesos)",
+    "padre": "AC",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es la diferencia entre el valor en libros, al final del periodo de estudio, de los productos en proceso de producción, respecto del valor de los bienes en proceso que tenía al inicio del periodo. Excluye: los activos fijos."
+  },
+  {
+    "clave": "A511A",
+    "nombre": "Margen por reventa de mercancías (millones de pesos)",
+    "padre": "AC",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el diferencial que obtuvo la unidad económica entre el valor de las mercancías adquiridas para la reventa que fueron vendidas y el valor de las ventas netas de mercancías adquiridas para la reventa, considerando la variación de sus existencias."
+  },
+  {
+    "clave": "M020A",
+    "nombre": "Ingresos por prestación de servicios profesionales, científicos y técnicos (millones de pesos)",
+    "padre": "AC",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son los ingresos a valor de venta que obtuvo la unidad económica por la prestación de sus servicios profesionales o técnicos que constituyen su actividad normal; comprende los ingresos obtenidos por el servicio de transporte de pasajeros, de carga, de mensajería y paquetería; el transporte de energía eléctrica; por servicios de distribución y comercialización de gas natural, el transporte por ductos; por servicios de exploración minera, así como los obtenidos por servicios de asesoría financiera y de publicidad."
+  },
+  {
+    "clave": "M050A",
+    "nombre": "Ingresos por alquiler de bienes muebles e inmuebles (millones de pesos)",
+    "padre": "AC",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Ingresos a valor de venta que obtuvo la unidad económica por la cesión temporal a otra razón social del derecho de uso o disfrute de los bienes muebles (maquinaria, equipo, mobiliario, etc.) e inmuebles (locales, terrenos, edificios, etc.) de su propiedad."
+  },
+  {
+    "clave": "M091A",
+    "nombre": "Otros componentes de la producción bruta total (millones de pesos)",
+    "padre": "AC",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor de los otros componentes de la producción bruta total que complementan la producción, como las regalías y otros servicios, incluidos los intereses, dividendos, ingresos por cambios y otros ingresos netos de las organizaciones financieras y corporativas."
+  },
+  {
+    "clave": "H001A",
+    "nombre": "Personal ocupado total",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende a todas las personas que trabajaron durante el periodo de referencia dependiendo contractualmente o no de la unidad económica, sujetas a su dirección y control."
+  },
+  {
+    "clave": "H001B",
+    "nombre": "Personal ocupado total, hombres",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende a todas las personas que trabajaron durante el periodo de referencia dependiendo contractualmente o no de la unidad económica, sujetas a su dirección y control."
+  },
+  {
+    "clave": "H001C",
+    "nombre": "Personal ocupado total, mujeres",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende a todas las personas que trabajaron durante el periodo de referencia dependiendo contractualmente o no de la unidad económica, sujetas a su dirección y control."
+  },
+  {
+    "clave": "H001D",
+    "nombre": "Horas trabajadas por personal ocupado total (miles de horas)",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el total de horas trabajadas en el año de referencia por el personal ocupado total, comprende las horas normales y extraordinarias dedicadas a las actividades. Incluye: tiempo de espera, preparación de labores, mantenimiento y limpieza. Excluye: el tiempo de suspensión de labores por huelgas, paros, vacaciones, licencias temporales por incapacidad y fenómenos naturales."
+  },
+  {
+    "clave": "H000A",
+    "nombre": "Personal dependiente de la razón social total",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende al personal contratado directamente por esta razón social, de planta y eventual y no remunerado, sea o no sindicalizado, que trabajó durante el periodo de referencia para la unidad económica, sujeto a su dirección y control, cubriendo como mínimo una tercera parte de la jornada laboral de la misma. Incluye: al personal que trabajó fuera de la unidad económica bajo su control laboral y legal; a las y los trabajadores a destajo y en huelga; personas con licencia por enfermedad, vacaciones o permiso temporal. Excluye: personas pensionadas y jubiladas; personal con licencia ilimitada y personal que trabajó exclusivamente por honorarios o comisiones sin recibir un sueldo o salario fijo; así como el personal de la empresa contratada para proporcionar un servicio, como limpieza, jardinería o vigilancia, entre otros."
+  },
+  {
+    "clave": "H000B",
+    "nombre": "Personal dependiente de la razón social, hombres",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende al personal contratado directamente por esta razón social, de planta y eventual y no remunerado, sea o no sindicalizado, que trabajó durante el año de referencia para la unidad económica, sujeto a su dirección y control, cubriendo como mínimo una tercera parte de la jornada laboral de la misma. Incluye: al personal que trabajó fuera de la unidad económica bajo su control laboral y legal; a las y los trabajadores a destajo y en huelga; personas con licencia por enfermedad, vacaciones o permiso temporal. Excluye: personas pensionadas y jubiladas; personal con licencia ilimitada y personal que trabajó exclusivamente por honorarios o comisiones sin recibir un sueldo o salario fijo; así como el personal de la empresa contratada para proporcionar un servicio, como limpieza, jardinería o vigilancia, entre otros."
+  },
+  {
+    "clave": "H000C",
+    "nombre": "Personal dependiente de la razón social, mujeres",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende al personal contratado directamente por esta razón social, de planta y eventual y no remunerado, sea o no sindicalizado, que trabajó durante el año de referencia para la unidad económica, sujeto a su dirección y control, cubriendo como mínimo una tercera parte de la jornada laboral de la misma. Incluye: al personal que trabajó fuera de la unidad económica bajo su control laboral y legal; a las y los trabajadores a destajo y en huelga; personas con licencia por enfermedad, vacaciones o permiso temporal. Excluye: personas pensionadas y jubiladas; personal con licencia ilimitada y personal que trabajó exclusivamente por honorarios o comisiones sin recibir un sueldo o salario fijo; así como el personal de la empresa contratada para proporcionar un servicio, como limpieza, jardinería o vigilancia, entre otros."
+  },
+  {
+    "clave": "H000D",
+    "nombre": "Horas trabajadas por personal dependiente de la razón social (miles de horas)",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el total de horas trabajadas en el año de referencia por el personal dependiente de la razón social, comprende las horas normales y extraordinarias dedicadas a las actividades. Incluye: tiempo de espera, preparación de labores, mantenimiento y limpieza. Excluye: el tiempo de suspensión de labores por huelgas, paros, vacaciones, licencias temporales por incapacidad y fenómenos naturales."
+  },
+  {
+    "clave": "H010A",
+    "nombre": "Personal remunerado total",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende a todas las personas que trabajaron durante el periodo de referencia dependiendo contractualmente de la unidad económica, sujetas a su dirección y control, a cambio de una remuneración fija y periódica."
+  },
+  {
+    "clave": "H010B",
+    "nombre": "Personal remunerado, hombres",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende a todas las personas que trabajaron durante el periodo de referencia dependiendo contractualmente de la unidad económica, sujetas a su dirección y control, a cambio de una remuneración fija y periódica."
+  },
+  {
+    "clave": "H010C",
+    "nombre": "Personal remunerado, mujeres",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende a todas las personas que trabajaron durante el periodo de referencia dependiendo contractualmente de la unidad económica, sujetas a su dirección y control, a cambio de una remuneración fija y periódica."
+  },
+  {
+    "clave": "H010D",
+    "nombre": "Horas trabajadas por personal remunerado (miles de horas)",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Total de horas trabajadas en el año de referencia por el personal ocupado remunerado, comprende las horas normales y extraordinarias dedicadas a las actividades. Incluye: tiempo de espera, preparación de labores, mantenimiento y limpieza. Excluye: el tiempo de suspensión de labores por huelgas, paros, vacaciones, licencias temporales por incapacidad y fenómenos naturales."
+  },
+  {
+    "clave": "H101A",
+    "nombre": "Personal de producción, ventas y servicios total",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende a todas las personas que trabajaron durante el periodo de referencia dependiendo contractualmente de la unidad económica, sujetas a su dirección y control, a cambio de una remuneración fija y periódica por su participación en las actividades de producción, comercialización o prestación de servicios."
+  },
+  {
+    "clave": "H101B",
+    "nombre": "Personal de producción, ventas y servicios, hombres",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende a todas las personas que trabajaron durante el periodo de referencia dependiendo contractualmente de la unidad económica, sujetas a su dirección y control, a cambio de una remuneración fija y periódica por su participación en las actividades de producción, comercialización o prestación de servicios."
+  },
+  {
+    "clave": "H101C",
+    "nombre": "Personal de producción, ventas y servicios, mujeres",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende a todas las personas que trabajaron durante el periodo de referencia dependiendo contractualmente de la unidad económica, sujetas a su dirección y control, a cambio de una remuneración fija y periódica por su participación en las actividades de producción, comercialización o prestación de servicios."
+  },
+  {
+    "clave": "H101D",
+    "nombre": "Horas trabajadas por personal de producción, ventas y servicios (miles de horas)",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el total de horas trabajadas en el año de referencia por el personal de producción, ventas y servicios, comprende las horas normales y extraordinarias dedicadas a las actividades. Incluye: tiempo de espera, preparación de labores, mantenimiento y limpieza. Excluye: el tiempo de suspensión de labores por huelgas, paros, vacaciones, licencias temporales por incapacidad y fenómenos naturales."
+  },
+  {
+    "clave": "H203A",
+    "nombre": "Personal administrativo, contable y de dirección total",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende a todas las personas que trabajaron durante el periodo de referencia dependiendo contractualmente de la unidad económica, sujetas a su dirección y control, a cambio de una remuneración fija y periódica por desempeñar labores generales de oficina, así como de contabilidad, ejecutivas de planeación, organización, dirección y control para la propia unidad económica."
+  },
+  {
+    "clave": "H203B",
+    "nombre": "Personal administrativo, contable y de dirección, hombres",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende a todas las personas que trabajaron durante el periodo de referencia dependiendo contractualmente de la unidad económica, sujetas a su dirección y control, a cambio de una remuneración fija y periódica por desempeñar labores generales de oficina, así como de contabilidad, ejecutivas de planeación, organización, dirección y control para la propia unidad económica."
+  },
+  {
+    "clave": "H203C",
+    "nombre": "Personal administrativo, contable y de dirección, mujeres",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende a todas las personas que trabajaron durante el periodo de referencia dependiendo contractualmente de la unidad económica, sujetas a su dirección y control, a cambio de una remuneración fija y periódica por desempeñar labores generales de oficina, así como de contabilidad, ejecutivas de planeación, organización, dirección y control para la propia unidad económica."
+  },
+  {
+    "clave": "H203D",
+    "nombre": "Horas trabajadas por personal administrativo, contable y de dirección (miles de horas)",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el total de horas trabajadas en el año de referencia por el personal administrativo, contable y de dirección, comprende las horas normales y extraordinarias dedicadas a las actividades. Incluye: tiempo de espera, preparación de labores, mantenimiento y limpieza. Excluye: el tiempo de suspensión de labores por huelgas, paros, vacaciones, licencias temporales por incapacidad y fenómenos naturales."
+  },
+  {
+    "clave": "H020A",
+    "nombre": "Personas propietarias, familiares y otro personal no remunerado total",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son las personas que trabajaron bajo la dirección y control de la unidad económica, cubriendo como mínimo una tercera parte de la jornada laboral de la misma, sin recibir un sueldo o salario fijo de forma periódica. Incluye: a personas propietarias, sus familiares, socias y socios activos; personal que labora para la unidad económica percibiendo exclusivamente propinas, personal prestador de servicio social y becado por el sistema nacional de empleo o en programas de capacitación y entrenamiento; personal que trabajó haciendo méritos para ocupar una plaza y personas voluntarias. Excluye: a las personas que prestaron sus servicios profesionales o técnicos y cobraron honorarios por esto, personas pensionadas y jubiladas y al personal suministrado por otra razón social."
+  },
+  {
+    "clave": "H020B",
+    "nombre": "Personas propietarias, familiares y otro personal no remunerado, hombres",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son las personas que trabajaron bajo la dirección y control de la unidad económica, cubriendo como mínimo una tercera parte de la jornada laboral de la misma, sin recibir un sueldo o salario fijo de forma periódica. Incluye: a personas propietarias, sus familiares, socias y socios activos; personal que labora para la unidad económica percibiendo exclusivamente propinas, personal prestador de servicio social y becado por el sistema nacional de empleo o en programas de capacitación y entrenamiento; personal que trabajó haciendo méritos para ocupar una plaza y personas voluntarias. Excluye: a las personas que prestaron sus servicios profesionales o técnicos y cobraron honorarios por esto, personas pensionadas y jubiladas y al personal suministrado por otra razón social."
+  },
+  {
+    "clave": "H020C",
+    "nombre": "Personas propietarias, familiares y otro personal no remunerado, mujeres",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son las personas que trabajaron bajo la dirección y control de la unidad económica, cubriendo como mínimo una tercera parte de la jornada laboral de la misma, sin recibir un sueldo o salario fijo de forma periódica. Incluye: a personas propietarias, sus familiares, socias y socios activos; personal que labora para la unidad económica percibiendo exclusivamente propinas, personal prestador de servicio social y becado por el sistema nacional de empleo o en programas de capacitación y entrenamiento; personal que trabajó haciendo méritos para ocupar una plaza y personas voluntarias. Excluye: a las personas que prestaron sus servicios profesionales o técnicos y cobraron honorarios por esto, personas pensionadas y jubiladas y al personal suministrado por otra razón social."
+  },
+  {
+    "clave": "H020D",
+    "nombre": "Horas trabajadas por personas propietarias, familiares y otro personal no remunerado (miles de horas)",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el total de horas trabajadas en el año de referencia por las personas propietarias, sus familiares y otro personal no remunerado, comprende las horas normales y extraordinarias dedicadas a las actividades. Incluye: tiempo de espera, preparación de labores, mantenimiento y limpieza. Excluye: el tiempo de suspensión de labores por huelgas, paros, vacaciones, licencias temporales por incapacidad y fenómenos naturales."
+  },
+  {
+    "clave": "I000A",
+    "nombre": "Personal no dependiente de la razón social total",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son todas las personas que trabajaron para la unidad económica durante el periodo de referencia, pero que dependían contractualmente de otra razón social o laboraron por cuenta propia para la unidad económica y realizaron labores ligadas con la producción, comercialización, administración y contabilidad, entre otras, cubriendo como mínimo una tercera parte de la jornada laboral de la unidad económica. Excluye: al personal que trabajó en la unidad económica por la contratación de servicios de vigilancia, limpieza y jardinería."
+  },
+  {
+    "clave": "I000B",
+    "nombre": "Personal no dependiente de la razón social, hombres",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son todas las personas que trabajaron para la unidad económica durante el periodo de referencia, pero que dependían contractualmente de otra razón social o laboraron por cuenta propia para la unidad económica y realizaron labores ligadas con la producción, comercialización, administración y contabilidad, entre otras, cubriendo como mínimo una tercera parte de la jornada laboral de la unidad económica. Excluye: al personal que trabajó en la unidad económica por la contratación de servicios de vigilancia, limpieza y jardinería."
+  },
+  {
+    "clave": "I000C",
+    "nombre": "Personal no dependiente de la razón social, mujeres",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son todas las personas que trabajaron para la unidad económica durante el periodo de referencia, pero que dependían contractualmente de otra razón social o laboraron por cuenta propia para la unidad económica y realizaron labores ligadas con la producción, comercialización, administración y contabilidad, entre otras, cubriendo como mínimo una tercera parte de la jornada laboral de la unidad económica. Excluye: al personal que trabajó en la unidad económica por la contratación de servicios de vigilancia, limpieza y jardinería."
+  },
+  {
+    "clave": "I000D",
+    "nombre": "Horas trabajadas por personal no dependiente de la razón social (miles de horas)",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el total de horas trabajadas en el año de referencia por el personal no dependiente de la razón social, comprende las horas normales y extraordinarias dedicadas a las actividades. Incluye: tiempo de espera, preparación de labores, mantenimiento y limpieza. Excluye: el tiempo de suspensión de labores por huelgas, paros, vacaciones, licencias temporales por incapacidad y fenómenos naturales."
+  },
+  {
+    "clave": "I100A",
+    "nombre": "Personal contratado y proporcionado por otra razón social total",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son todas las personas que trabajaron durante el periodo de referencia para la unidad económica, pero que dependían contractualmente de otra razón social. Excluye: al personal que trabajó en la unidad económica por la contratación de servicios como: vigilancia, limpieza y jardinería."
+  },
+  {
+    "clave": "I100B",
+    "nombre": "Personal contratado y proporcionado por otra razón social, hombres",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son todas las personas que trabajaron durante el periodo de referencia para la unidad económica, pero que dependían contractualmente de otra razón social. Excluye: al personal que trabajó en la unidad económica por la contratación de servicios como: vigilancia, limpieza y jardinería."
+  },
+  {
+    "clave": "I100C",
+    "nombre": "Personal contratado y proporcionado por otra razón social, mujeres",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son todas las personas que trabajaron durante el periodo de referencia para la unidad económica, pero que dependían contractualmente de otra razón social. Excluye: al personal que trabajó en la unidad económica por la contratación de servicios como: vigilancia, limpieza y jardinería."
+  },
+  {
+    "clave": "I100D",
+    "nombre": "Horas trabajadas por personal contratado y proporcionado por otra razón social (miles de horas)",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el total de horas trabajadas en el año de referencia por el personal ocupado contratado y proporcionado por otra razón social, comprende las horas normales y extraordinarias dedicadas a las actividades. Incluye: tiempo de espera, preparación de labores, mantenimiento y limpieza. Excluye: el tiempo de suspensión de labores por huelgas, paros, vacaciones, licencias temporales por incapacidad y fenómenos naturales."
+  },
+  {
+    "clave": "I200A",
+    "nombre": "Personal por honorarios o comisiones sin sueldo o salario fijo total",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son las personas que laboraron por cuenta propia para la unidad económica y que cobraron exclusivamente con base en honorarios o comisiones. Excluye: a las personas que recibieron como pago exclusivamente propinas, servicios legales de abogacía, servicios médicos, de contabilidad y demás profesionistas que cobraron honorarios o igualas por la prestación de sus servicios profesionales, sin laborar de manera regular o exclusiva para la unidad económica."
+  },
+  {
+    "clave": "I200B",
+    "nombre": "Personal por honorarios o comisiones sin sueldo o salario fijo, hombres",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son las personas que laboraron por cuenta propia para la unidad económica y que cobraron exclusivamente con base en honorarios o comisiones. Excluye: a las personas que recibieron como pago exclusivamente propinas, servicios legales de abogacía, servicios médicos, de contabilidad y demás profesionistas que cobraron honorarios o igualas por la prestación de sus servicios profesionales, sin laborar de manera regular o exclusiva para la unidad económica."
+  },
+  {
+    "clave": "I200C",
+    "nombre": "Personal por honorarios o comisiones sin sueldo o salario fijo, mujeres",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son las personas que laboraron por cuenta propia para la unidad económica y que cobraron exclusivamente con base en honorarios o comisiones. Excluye: a las personas que recibieron como pago exclusivamente propinas, servicios legales de abogacía, servicios médicos, de contabilidad y demás profesionistas que cobraron honorarios o igualas por la prestación de sus servicios profesionales, sin laborar de manera regular o exclusiva para la unidad económica."
+  },
+  {
+    "clave": "I200D",
+    "nombre": "Horas trabajadas por personal por honorarios o comisiones sin sueldo o salario fijo (miles de horas)",
+    "padre": "AD",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el total de horas trabajadas en el año de referencia por el personal por honorarios o comisiones sin sueldo o salario fijo, comprende las horas normales y extraordinarias dedicadas a las actividades. Incluye: tiempo de espera, preparación de labores, mantenimiento y limpieza. Excluye: el tiempo de suspensión de labores por huelgas, paros, vacaciones, licencias temporales por incapacidad y fenómenos naturales."
+  },
+  {
+    "clave": "J000A",
+    "nombre": "Total de remuneraciones (millones de pesos)",
+    "padre": "AE",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son todos los pagos y aportaciones normales y extraordinarias, en dinero y especie, antes de cualquier deducción, para retribuir el trabajo del personal dependiente de la razón social, en forma de salarios y sueldos, prestaciones sociales y utilidades repartidas al personal, ya sea que este pago se calcule sobre la base de una jornada de trabajo o por la cantidad de trabajo desarrollado (destajo), o mediante un salario base que se complementa con comisiones por ventas u otras actividades. Incluye: las contribuciones patronales a regímenes de seguridad social, el pago realizado al personal con licencia y permiso temporal. Excluye: los pagos por liquidaciones o indemnizaciones, pagos a terceros por el suministro de personal ocupado; pagos exclusivamente de comisiones para aquel personal que no recibió un sueldo o salario fijo; pagos de honorarios por servicios profesionales contratados de manera infrecuente."
+  },
+  {
+    "clave": "J010A",
+    "nombre": "Total de salarios al personal de producción, ventas y servicios (millones de pesos)",
+    "padre": "AE",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son los pagos que realizó la unidad económica para retribuir el trabajo ordinario y extraordinario del personal dependiente de la razón social, antes de cualquier deducción retenida (impuesto sobre la renta o sobre el producto del trabajo) por las y los empleadores, las aportaciones de las y los trabajadores a los regímenes de seguridad social (IMSS, ISSSTE, INFONAVIT) y las cuotas sindicales. Incluye: aguinaldos; comisiones sobre ventas que complementan el sueldo o salario fijo; primas vacacionales; bonificaciones; incentivos y bonos de productividad. Excluye: los gastos en pasajes y viáticos, alimentación y en general, los gastos reembolsables a las y los trabajadores; los pagos al personal que no depende del establecimiento y que cobra exclusivamente con base de honorarios o comisiones y los pagos que el establecimiento realiza a otra razón social por concepto de suministro de personal."
+  },
+  {
+    "clave": "J203A",
+    "nombre": "Total de sueldos al personal administrativo, contable y de dirección (millones de pesos)",
+    "padre": "AE",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son los pagos que realizó la unidad económica para retribuir el trabajo ordinario y extraordinario del personal dependiente de la razón social, antes de cualquier deducción retenida por los empleadores (impuesto sobre la renta o sobre el producto del trabajo), las aportaciones de las y los trabajadores a los regímenes de seguridad social (IMSS, ISSSTE, INFONAVIT) y las cuotas sindicales. Incluye: aguinaldos; comisiones sobre ventas que complementan el sueldo base; primas vacacionales; bonificaciones; incentivos y bonos de productividad. Excluye: los gastos en pasajes y viáticos, alimentación y, en general, los gastos reembolsables al trabajador; los pagos al personal que no depende de la unidad económica y que cobra exclusivamente a base de honorarios o comisiones; y los pagos que la unidad económica realiza a otra razón social por concepto de suministro de personal."
+  },
+  {
+    "clave": "J300A",
+    "nombre": "Contribuciones patronales a regímenes de seguridad social (millones de pesos)",
+    "padre": "AE",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Todas las aportaciones monetarias que la unidad económica cubrió con sus recursos a instituciones de seguridad social en beneficio de las y los trabajadores remunerados."
+  },
+  {
+    "clave": "J400A",
+    "nombre": "Otras prestaciones sociales (millones de pesos)",
+    "padre": "AE",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son los pagos que la unidad económica realizó a instituciones privadas en beneficio de las y los trabajadores o que otorgó directamente en especie al personal remunerado en complemento o adición a los sueldos y salarios, tales como servicios médicos privados, despensas, primas de seguros, servicios educativos, ayudas para estudio y guarderías. Excluye: las contribuciones patronales a regímenes de seguridad social, compra de equipo, uniformes y ropa de trabajo; costos de capacitación; primas vacacionales; erogaciones para actividades deportivas y recreativas; gastos por concepto de pasajes, viáticos y alimentación; además de todos aquellos gastos reembolsables al personal. Valoración de los bienes y servicios otorgados al personal. Cuando son otorgados de manera gratuita, se considera el monto pagado al momento de su compra. Si se otorgan a precios reducidos se valoran considerando la diferencia entre el valor total de los bienes y servicios suministrados, menos el monto pagado por las y los trabajadores. Cuando se otorgan en efectivo, se excluyen de este concepto y son considerados como parte de sueldos y salarios."
+  },
+  {
+    "clave": "J500A",
+    "nombre": "Utilidades repartidas al personal (millones de pesos)",
+    "padre": "AE",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son los pagos en efectivo que la unidad económica distribuyó entre el personal, antes de cualquier deducción, por concepto de utilidades, conforme a la legislación laboral o las cláusulas de los contratos colectivos de trabajo o convenios entre las y los patrones y el personal, cualquiera que sea el ejercicio al que correspondan."
+  },
+  {
+    "clave": "J600A",
+    "nombre": "Gastos por indemnización o liquidación del personal (millones de pesos)",
+    "padre": "AE",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Compensación monetaria que se otorgó a las y los trabajadores por concepto de despido, retiro o terminación de contrato laboral con la unidad económica."
+  },
+  {
+    "clave": "K000A",
+    "nombre": "Total de gastos por consumo de bienes y servicios (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor de todos los bienes y servicios consumidos por la unidad económica para realizar sus operaciones el periodo de referencia, independientemente del periodo en que hayan sido comprados o adquiridos, considerando el valor de los bienes y servicios que recibió de otros establecimientos de la misma empresa (con o sin costo) para su uso en las actividades de producción u operación de la unidad económica. Incluye: el valor de los bienes y servicios que recibió en transferencia para su consumo o transformación y fueron efectivamente consumidos, en sus actividades productivas o relacionadas con las mismas. Excluye: los gastos fiscales, financieros, donaciones y los gastos de las empresas o razones sociales controladas por esta empresa."
+  },
+  {
+    "clave": "K010A",
+    "nombre": "Mercancías y bienes comprados para la reventa (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor de las mercancías que compró la unidad económica para venderlas en las mismas condiciones en que las adquirió, así como los gastos realizados por el gas que comercializó con los usuarios. Incluye: las mercancías para reventa que recibió de otros establecimientos de la misma empresa. Excluye: las mercancías recibidas en consignación."
+  },
+  {
+    "clave": "K020A",
+    "nombre": "Materiales e insumos consumidos para la prestación de servicios (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el importe de los productos y materiales de cualquier especie, a costo de adquisición, que fueron consumidos por la unidad económica para proporcionar el servicio que constituye su actividad normal. Incluye: los materiales consumidos provenientes de otros establecimientos de la misma empresa. Así como los gastos por servicios de transmisión de energía eléctrica, gastos por servicios de distribución, conducción y entrega de gas o productos derivados del petróleo y los gastos del servicio de transporte por ductos proporcionado a terceros."
+  },
+  {
+    "clave": "K030A",
+    "nombre": "Materias primas y materiales que se integran a la producción (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor a costo de adquisición en el mercado nacional o extranjero, de las materias primas y auxiliares consumidas en los procesos de producción; el valor de los materiales consumidos en las obras ejecutadas de manera directa; el valor de los insumos consumidos para la extracción de hidrocarburos; el importe de los agentes o componentes químicos que producen detonaciones, el valor de los insumos utilizados para el beneficio y precipitación de minerales y para determinar su naturaleza. Así como el valor de los bienes no duraderos consumidos para las actividades pesca o acuicultura."
+  },
+  {
+    "clave": "K311A",
+    "nombre": "Gastos por consumo de papelería y artículos de oficina (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor a costo de adquisición de libretas, fólderes, elementos de escritura, consumibles de computación y en general todos aquellos materiales que se emplean en oficinas y que fueron consumidos por la unidad económica. Incluye: los consumidos provenientes de otros establecimientos de la misma empresa."
+  },
+  {
+    "clave": "K042A",
+    "nombre": "Consumo de combustibles, lubricantes y energéticos (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el importe por consumo en combustibles y lubricantes que realizó la unidad económica para el funcionamiento de la maquinaria, el equipo y los vehículos."
+  },
+  {
+    "clave": "K412A",
+    "nombre": "Gasto por consumo de energía eléctrica (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor a costo de adquisición que la unidad económica gastó por la utilización de la energía eléctrica, así como el costo de la energía eléctrica comprada a otras empresas del sector eléctrico y permisionarios para la reventa."
+  },
+  {
+    "clave": "K050A",
+    "nombre": "Renta y alquiler de bienes muebles e inmuebles (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Gastos por concepto de arrendamiento puro u operativo (arrendamiento no financiero) o alquiler de maquinaria y equipo o de bienes inmuebles para el desempeño de las actividades económicas. Los bienes inmuebles incluyen locales, oficinas y terrenos."
+  },
+  {
+    "clave": "K610A",
+    "nombre": "Pagos a otra razón social que contrató y proporcionó personal (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son los pagos que realizó la unidad económica a otra razón social que le suministró personal para el desempeño de las actividades productivas y de apoyo. Excluye: los pagos por la contratación de servicios, por ejemplo: vigilancia, intendencia, limpieza, jardinería, entre otros."
+  },
+  {
+    "clave": "K620A",
+    "nombre": "Gastos por honorarios o comisiones sin sueldo o salario fijo (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el importe de los gastos que realizó la unidad económica por estos conceptos al personal que no recibe una remuneración base. Excluye: las comisiones pagadas en adición a un salario base."
+  },
+  {
+    "clave": "K060A",
+    "nombre": "Contratación de servicios profesionales, científicos y técnicos (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende los gastos por servicios profesionales, científicos y técnicos que recibió de consultores independientes y compañías especializadas en temas contables, legales y de administración, proyectos de ingeniería técnica y de detalle, asesoría comercial, mercadotecnia y servicios relacionados, así como los gastos por la perforación de pozos petroleros y/o de gas."
+  },
+  {
+    "clave": "K070A",
+    "nombre": "Maquila y servicios de producción de bienes por contrato (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Gastos efectuados por la unidad económica por los servicios industriales que recibió de otra razón social por la transformación parcial o total de sus materias primas, el ensamble, armado o la adición, complementación o modificación de un componente a un producto previamente manufacturado. Para el caso de la Minería, son los gastos por servicios de beneficio de los minerales propiedad de la unidad minera. En la Construcción, los pagos a los subcontratistas, que considera el valor de los materiales de construcción utilizados y que son propiedad de la empresa subcontratista e incluye el alquiler de la maquinaria con operador"
+  },
+  {
+    "clave": "K810A",
+    "nombre": "Gastos por publicidad (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor de los gastos a costo de adquisición que realizó la unidad económica para la difusión y propaganda de sus bienes, servicios o su imagen pública. Incluye: publicidad en radio, televisión, internet, periódicos y revistas, los pagos a agencias de publicidad, la distribución de volantes y calendarios, plumas y otros artículos publicitarios."
+  },
+  {
+    "clave": "K820A",
+    "nombre": "Gastos por servicios de comunicación (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor de los gastos a costo de adquisición que realizó la unidad económica por el uso de diversos servicios de telecomunicaciones, como teléfono fijo o celular para la unidad económica, internet y satélite; así como por los servicios de mensajería y correo. Incluye: los servicios de acceso a la información en línea."
+  },
+  {
+    "clave": "K910A",
+    "nombre": "Gastos por consumo de envases y empaques (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor a costo de adquisición de los artículos y materiales de cualquier naturaleza usados para contener, mejorar la presentación y proteger los productos del maltrato, descomposición, daño o merma. Incluye: los materiales para producir o armar los envases y empaques y los consumidos provenientes de otros establecimientos de la misma empresa. Excluye: los enviados a otros establecimientos de la misma empresa."
+  },
+  {
+    "clave": "K950A",
+    "nombre": "Reparaciones y refacciones para mantenimiento corriente (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende los gastos por servicios de reparación y mantenimiento corriente de los activos fijos que utilizó la unidad económica, así como el consumo de refacciones y partes empleadas en las reparaciones realizadas por la propia la unidad económica en los activos fijos que son de su propiedad y en los activos fijos propiedad de terceros. Excluye: las partes y refacciones empleadas en la producción o mejoras para incrementar la productividad de los activos fijos propios."
+  },
+  {
+    "clave": "K096A",
+    "nombre": "Fletes de productos vendidos (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Gastos que realizó la unidad económica por el transporte de los productos vendidos (o de mercancía comprada para reventa, en el caso del Comercio), realizado por terceros. Incluye: los servicios de logística en conjunto con la distribución, manejo y almacenamiento de productos, entre otros. Excluye: los pagos por la transportación de materias primas y otros insumos que compró la unidad económica."
+  },
+  {
+    "clave": "K976A",
+    "nombre": "Consumo de agua (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el importe por el consumo de agua suministrada por la red municipal o por pipas, ya sea para el consumo humano o empleada en el proceso productivo."
+  },
+  {
+    "clave": "K090A",
+    "nombre": "Consumo de otros bienes y servicios (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son los gastos de operación normal de la unidad económica, por los bienes y servicios que consumió y que no fueron considerados de manera específica en los conceptos anteriores, pero están relacionados con la actividad. Incluye: gastos por viáticos, pasajes, primas de seguros de bienes y regalías; la contratación de los servicios de vigilancia, intendencia, limpieza, jardinería, entre otros; equipo, uniformes y ropa de trabajo; los costos por selección, capacitación y administración de personal; los pagos a instructores internos y externos; los materiales de capacitación y los pagos a instituciones de educación (becas); actividades deportivas y recreativas; y otro tipo de materiales y servicios no considerados anteriormente. Excluye: los intereses que pagó por créditos o préstamos, los impuestos, las licencias de operación, los gastos de tipo financiero (pérdidas cambiarias, pagos de dividendos, etcétera), las deudas incobrables, las multas, las donaciones, la compra y depreciación de los activos fijos."
+  },
+  {
+    "clave": "A700A",
+    "nombre": "Total de gastos (millones de pesos)",
+    "padre": "AF",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el monto total que la unidad económica destinó al consumo de bienes, servicios y otras erogaciones financieras, fiscales y donaciones sin contrapartida a personas físicas y morales."
+  },
+  {
+    "clave": "M000A",
+    "nombre": "Total de ingresos por suministro de bienes y servicios (millones de pesos)",
+    "padre": "AG",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el monto que obtuvo la unidad económica durante el periodo de referencia, por todas aquellas actividades de producción de bienes, comercialización de mercancías y prestación de servicios. Incluye: el valor de los bienes y servicios transferidos a otras unidades económicas de la misma empresa, valorados a precio de venta, más todas las erogaciones o impuestos cobrados a las y los compradores. Excluye: los ingresos financieros, subsidios, cuotas, aportaciones y venta de activos fijos."
+  },
+  {
+    "clave": "M010A",
+    "nombre": "Ingresos por la reventa de mercancías y bienes (millones de pesos)",
+    "padre": "AG",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son los ingresos a valor de venta que obtuvo la unidad económica por la compraventa de mercancías y bienes en el mismo estado en que los recibió, así como los ingresos obtenidos por la venta de gas a los usuarios."
+  },
+  {
+    "clave": "M020A",
+    "nombre": "Ingresos por prestación de servicios profesionales, científicos y técnicos (millones de pesos)",
+    "padre": "AG",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son los ingresos a valor de venta que obtuvo la unidad económica por la prestación de sus servicios profesionales o técnicos que constituyen su actividad normal; comprende los ingresos obtenidos por el servicio de transporte de pasajeros, de carga, de mensajería y paquetería; el transporte de energía eléctrica; por servicios de distribución y comercialización de gas natural, el transporte por ductos; por servicios de exploración minera, así como los obtenidos por servicios de asesoría financiera y de publicidad."
+  },
+  {
+    "clave": "M030A",
+    "nombre": "Venta de productos elaborados, generados o extraídos (millones de pesos)",
+    "padre": "AG",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Ingresos obtenidos por la venta de los bienes que fueron producidos por la unidad económica durante el año de referencia o en periodos anteriores. Comprende los ingresos por la venta de energía eléctrica generada y comprada; por el suministro de agua potable para uso doméstico, comercial, industrial y de servicios públicos; los ingresos por la ejecución de obras como contratista principal y subcontratista, por la administración y supervisión de obras; por la venta de petróleo crudo, gas natural y condensados; por ventas de minerales extraídos sin beneficio y beneficiados, y por la producción pesquera y acuícola."
+  },
+  {
+    "clave": "M050A",
+    "nombre": "Ingresos por alquiler de bienes muebles e inmuebles (millones de pesos)",
+    "padre": "AG",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Ingresos a valor de venta que obtuvo la unidad económica por la cesión temporal a otra razón social del derecho de uso o disfrute de los bienes muebles (maquinaria, equipo, mobiliario, etc.) e inmuebles (locales, terrenos, edificios, etc.) de su propiedad."
+  },
+  {
+    "clave": "M700A",
+    "nombre": "Ingresos por maquilar o transformar materias primas propiedad de terceros (millones de pesos)",
+    "padre": "AG",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Son los ingresos obtenidos por la unidad económica por la fabricación, ensamble u otro tipo de transformación de las materias primas propiedad de terceros. Incluye: los ingresos por la transformación de insumos importados temporalmente que fueron transferidos a la unidad económica. Excluye: el valor de los insumos consumidos."
+  },
+  {
+    "clave": "M090A",
+    "nombre": "Otros ingresos por suministro de bienes y servicios (millones de pesos)",
+    "padre": "AG",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Los que obtuvo la unidad económica por conceptos no especificados anteriormente. Incluye: los ingresos por regalías y servicios de almacenaje. Excluye: los servicios de reproceso y submaquila, el financiamiento recibido, las cuotas y aportaciones, dividendos, donaciones, subsidios, ingresos por operaciones financieras y la venta de activos fijos."
+  },
+  {
+    "clave": "A800A",
+    "nombre": "Total de ingresos (millones de pesos)",
+    "padre": "AG",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el monto total que la unidad económica obtuvo por la venta de bienes, servicios, intereses, otros ingresos financieros y las donaciones recibidas sin contrapartida."
+  },
+  {
+    "clave": "P000A",
+    "nombre": "Total de inventario inicial (millones de pesos)",
+    "padre": "AH",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor en libros (saldo en el inventario inicial) de los bienes que no habían sido terminados, consumidos o vendidos, así como los productos terminados que se encontraban formando parte de sus inventarios en almacén, lugares de exhibición o venta durante las fechas señaladas, independientemente del periodo en que hayan sido producidos o adquiridos. Excluye: los activos fijos."
+  },
+  {
+    "clave": "P000B",
+    "nombre": "Total de inventario final (millones de pesos)",
+    "padre": "AH",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor en libros (saldo en el inventario final) de los bienes que no habían sido terminados, consumidos o vendidos, así como los productos terminados que se encontraban formando parte de sus inventarios en almacén, lugares de exhibición o venta durante las fechas señaladas, independientemente del periodo en que hayan sido producidos o adquiridos. Excluye: los activos fijos."
+  },
+  {
+    "clave": "P000C",
+    "nombre": "Variación total de existencias (millones de pesos)",
+    "padre": "AH",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Diferencia entre el valor en libros, al final del periodo de estudio, del total de existencias propiedad de la unidad económica, respecto del total del valor de las existencias que tenía al inicio del periodo."
+  },
+  {
+    "clave": "P100A",
+    "nombre": "Total de inventario inicial de mercancías compradas para reventa (millones de pesos)",
+    "padre": "AH",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor en libros (saldo en el inventario inicial) de las mercancías compradas para su reventa, propiedad de la unidad económica, que se encontraban formando parte de sus inventarios durante las fechas señaladas, independientemente del periodo en que fueron adquiridas. Incluye: las mercancías compradas para su reventa que no habían sido vendidas y que fueron enviadas a terceros para su venta a consignación; así como las que se recibieron de otras unidades económicas de la misma empresa. Excluye: las mercancías que se recibieron en consignación y aún no se vendían, y las que se mandaron a otras unidades económicas de la misma empresa."
+  },
+  {
+    "clave": "P100B",
+    "nombre": "Total de inventario final de mercancías compradas para reventa (millones de pesos)",
+    "padre": "AH",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor en libros (saldo en el inventario final) de las mercancías compradas para su reventa, propiedad de la unidad económica, que se encontraban formando parte de sus inventarios durante las fechas señaladas, independientemente del periodo en que fueron adquiridas. Incluye: las mercancías compradas para su reventa que no habían sido vendidas y que fueron enviadas a terceros para su venta a consignación; así como las que se recibieron de otras unidades económicas de la misma empresa. Excluye: las mercancías que se recibieron en consignación y aún no se vendían, y las que se mandaron a otras unidades económicas de la misma empresa."
+  },
+  {
+    "clave": "P030A",
+    "nombre": "Total de inventario inicial de productos en proceso (millones de pesos)",
+    "padre": "AH",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor en libros (saldo en el inventario inicial) de los productos en proceso de producción, que estaban transformándose durante las fechas señaladas. Incluye: los productos que fueron enviados a maquila y que no se habían recibido, los minerales extraídos, explotados o comprados y aquellos minerales que para su venta no requieren de beneficio."
+  },
+  {
+    "clave": "P030B",
+    "nombre": "Total de inventario final de productos en proceso (millones de pesos)",
+    "padre": "AH",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor en libros (saldo en el inventario final) de los productos en proceso de producción, que estaban transformándose durante las fechas señaladas. Incluye: los productos que fueron enviados a maquila y que no se habían recibido, los minerales extraídos, explotados o comprados y aquellos minerales que para su venta no requieren de beneficio."
+  },
+  {
+    "clave": "P030C",
+    "nombre": "Variación de inventarios de productos en proceso (millones de pesos)",
+    "padre": "AH",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es la diferencia entre el valor en libros, al final del periodo de estudio, de los productos en proceso de producción, respecto del valor de los bienes en proceso que tenía al inicio del periodo. Excluye: los activos fijos."
+  },
+  {
+    "clave": "Q000A",
+    "nombre": "Acervo total de activos fijos (millones de pesos)",
+    "padre": "AI",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor actualizado de todos aquellos bienes, propiedad de la unidad económica –cuya vida útil es superior a un año– que tienen la capacidad de producir o proporcionar las condiciones necesarias para la generación de bienes y servicios. Incluye: los activos fijos propiedad del establecimiento alquilados a terceros; los que utiliza normalmente el establecimiento, aunque sean asignados temporalmente a otros establecimientos de la misma empresa; los que produce el establecimiento para uso propio y los activos fijos que obtuvo en arrendamiento financiero. Excluye: los activos fijos que utilizan normalmente otros establecimientos de la misma empresa, pero que son asignados al establecimiento en estudio; los activos fijos en arrendamiento puro; las reparaciones menores de los activos fijos, los gastos por reparación y mantenimiento corriente. Valoración de los activos fijos. Debe reportarse a valor actual o costo de reposición, tomando en consideración las condiciones en las que se encontraban el último día del periodo de referencia, la pérdida de valor por su uso u obsolescencia, así como los cambios de su valor por variaciones en los precios y el tipo de cambio."
+  },
+  {
+    "clave": "Q000B",
+    "nombre": "Depreciación total de activos fijos (millones de pesos)",
+    "padre": "AI",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Comprende la pérdida de valor durante el periodo de referencia, por el uso u obsolescencia de los activos fijos propiedad de la unidad económica. Nota: No se considera la depreciación acumulada o histórica."
+  },
+  {
+    "clave": "Q000C",
+    "nombre": "Compra y adquisición de activos fijos y reformas mayores (millones de pesos)",
+    "padre": "AI",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el monto de las compras, adquisiciones y transferencias recibidas de activos fijos a valor actual, nuevos o usados, que durante el año realizó la unidad económica, se obtiene sumando todas las erogaciones en que incurrió para llevar e instalar los activos fijos en la unidad económica y su puesta en funcionamiento. Incluye: las mejoras, reformas y renovaciones de importancia que realizó la unidad económica en sus activos fijos para incrementar la productividad o vida útil de estos y la producción de activos fijos para uso propio. Excluye: las reparaciones y mantenimiento corriente de los activos fijos."
+  },
+  {
+    "clave": "Q000D",
+    "nombre": "Ventas totales de activos fijos (millones de pesos)",
+    "padre": "AI",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el monto de las ventas realizadas durante el periodo de referencia, de los activos fijos que fueron propiedad de la unidad económica. Incluye: el valor de los activos fijos que fueron dados de baja y que se conservan en la unidad económica, pero que por su nivel de obsolescencia o deterioro no son utilizados, así como el valor de los activos fijos perdidos por robo y que no fueron recuperados por el seguro."
+  },
+  {
+    "clave": "Q010A",
+    "nombre": "Acervo total de maquinaria y equipo de producción (millones de pesos)",
+    "padre": "AI",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor actualizado o a costo de reposición el día 31 de diciembre del periodo de referencia, de la maquinaria y el equipo mecánico, eléctrico, computarizado o de otro tipo, propiedad de la unidad económica, vinculado directamente con sus procesos de producción, comercialización o prestación de servicios y tareas auxiliares, así como el equipo para el servicio de transporte de pasajeros y carga, la construcción, la explotación y extracción de minerales, embarcaciones, artes y equipo para la pesca y la acuicultura."
+  },
+  {
+    "clave": "Q020A",
+    "nombre": "Acervo total de bienes inmuebles (millones de pesos)",
+    "padre": "AI",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor actualizado a costo de reposición el día 31 de diciembre del periodo de referencia, de los edificios, locales, construcciones e instalaciones como pozos y plataformas marinas, ductos, estructuras y equipo de compresión, regulación y medición de hidrocarburos, plantas potabilizadoras y de tratamiento de aguas residuales, tanques y depósitos de almacenamiento de agua, obras de toma, líneas de conducción, de telecomunicaciones y otras construcciones, que utilizó para el desarrollo de sus actividades; así como las áreas para estacionamiento, esparcimiento, áreas verdes, entre otras. Incluye: el valor de los terrenos, estén o no edificados, situados en la misma ubicación física de la unidad económica."
+  },
+  {
+    "clave": "Q030A",
+    "nombre": "Acervo total de unidades y equipo de transporte (millones de pesos)",
+    "padre": "AI",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor actualizado a costo de reposición el día 31 de diciembre del periodo de referencia, del equipo de transporte (vehículos automotores, aviones, barcos, etcétera) propiedad de la unidad económica, que utilizó para transportar personas o carga fuera de la misma. Excluye: el equipo necesario para transportar o levantar carga dentro de la unidad económica."
+  },
+  {
+    "clave": "Q400A",
+    "nombre": "Acervo total de equipo de cómputo y periféricos (millones de pesos)",
+    "padre": "AI",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Es el valor actualizado a costo de reposición del equipo de cómputo y sus periféricos, propiedad de la unidad económica, que no estaban integrados a la maquinaria y equipo de producción, como son las computadoras, redes de comunicación, impresoras, digitalizadores, entre otros. Excluye: el software."
+  },
+  {
+    "clave": "Q900A",
+    "nombre": "Acervo total de mobiliario, equipo de oficina y otros activos fijos (millones de pesos)",
+    "padre": "AI",
+    "nivel": 2,
+    "tiene_hijos": false,
+    "definicion": "Valor actualizado a costo de reposición del mobiliario, equipo de oficina y otros bienes de capital propiedad de la unidad económica, cuya vida útil sea mayor a un año y que proporcionaron las condiciones necesarias para llevar a cabo la actividad productiva de la unidad económica."
+  }
+]

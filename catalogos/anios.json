@@ -1,0 +1,37 @@
+[
+  {
+    "clave": "2023",
+    "nombre": "2023",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": false
+  },
+  {
+    "clave": "2018",
+    "nombre": "2018",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": false
+  },
+  {
+    "clave": "2013",
+    "nombre": "2013",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": false
+  },
+  {
+    "clave": "2008",
+    "nombre": "2008",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": false
+  },
+  {
+    "clave": "2003",
+    "nombre": "2003",
+    "padre": "0",
+    "nivel": 1,
+    "tiene_hijos": false
+  }
+]

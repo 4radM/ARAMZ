@@ -206,13 +206,17 @@ class Catalogos:
 
 
 # ------------------------------------------------------------------ SAIC
-def validar_consulta(cat, anios, lugares, variables, actividades, estratos):
+def validar_consulta(cat, anios, lugares, variables, actividades, estratos, solo_total=False):
     """Valida todo contra los catálogos y devuelve las listas ya resueltas."""
     anios_ok = [cat.resolver_anio(a) for a in _lista(anios)]
     lugares_ok = [cat.resolver_lugar(x) for x in _lista(lugares)]
     vars_ok = [cat.resolver_variable(v) for v in _lista(variables)]
-    acts_ok = ([cat.resolver_actividad(a) for a in _lista(actividades)]
-               if actividades else list(cat.sectores))
+    if solo_total:            # casilla "todos los sectores" desmarcada: solo la fila de total
+        acts_ok = []
+    elif actividades:
+        acts_ok = [cat.resolver_actividad(a) for a in _lista(actividades)]
+    else:
+        acts_ok = list(cat.sectores)
     estr_ok = [cat.resolver_estrato(e) for e in _lista(estratos)]
     if not anios_ok or not lugares_ok or not vars_ok:
         raise ValueError("Indica al menos un año, un lugar y una variable.")
@@ -221,11 +225,13 @@ def validar_consulta(cat, anios, lugares, variables, actividades, estratos):
     print("  años:       ", anios_ok)
     print("  lugares:    ", [f"{cat.nombre_lugar(c)} ({c})" for c in lugares_ok])
     print("  variables:  ", [f"{v} {cat.variables[v]['nombre']}" for v in vars_ok])
-    print("  actividades:", len(acts_ok), "| estratos:", estr_ok or "ninguno")
+    print("  actividades:", "solo el total" if solo_total else len(acts_ok),
+          "| estratos:", estr_ok or "ninguno")
     return anios_ok, lugares_ok, vars_ok, acts_ok, estr_ok
 
 
-def armar_payload(anios, claves_lugares, variables, actecos, estratos, pagina, reg=TAM_PAGINA):
+def armar_payload(anios, claves_lugares, variables, actecos, estratos, pagina, reg=TAM_PAGINA,
+                  total=False):
     return {
         "anios": anios,
         "ageos": claves_lugares,
@@ -234,7 +240,7 @@ def armar_payload(anios, claves_lugares, variables, actecos, estratos, pagina, r
         "stratums": estratos,
         "indicators": [],
         "calcs": [],
-        "total": False,
+        "total": total,
         "orden": "1",
         "desc": True,
         "page": pagina,
@@ -278,7 +284,7 @@ def crear_sesion():
     return sesion
 
 
-def contar_filas(sesion, anios, claves_lugares, actecos, estratos):
+def contar_filas(sesion, anios, claves_lugares, actecos, estratos, total=False):
     """
     Pregunta al SAIC cuántas filas tendrá la consulta (None si no se pudo).
     Usa el mismo formato que el navegador ("total": False).
@@ -286,7 +292,7 @@ def contar_filas(sesion, anios, claves_lugares, actecos, estratos):
     payload = {
         "anios": anios, "ageos": claves_lugares, "actecos": actecos,
         "stratums": estratos, "varcens": None, "calcs": None,
-        "total": False, "orden": None, "desc": False, "page": 0, "reg": 0,
+        "total": total, "orden": None, "desc": False, "page": 0, "reg": 0,
     }
     try:
         resp = sesion.post(URL_TOTAL, json=payload, timeout=60)
@@ -297,7 +303,7 @@ def contar_filas(sesion, anios, claves_lugares, actecos, estratos):
 
 
 def consultar_saic(anios, lugares, variables, actividades=None, estratos=None,
-                   cat=None, sesion=None, verificar=True):
+                   cat=None, sesion=None, verificar=True, solo_total=False, con_total=False):
     """
     anios: 2023 o [2023, 2018]      lugares: 'Nuevo León' o ['Monterrey, Nuevo León']
     variables: ['H001A', 'A131A']   actividades: None = los sectores principales
@@ -307,17 +313,20 @@ def consultar_saic(anios, lugares, variables, actividades=None, estratos=None,
     """
     cat = cat or Catalogos()
     anios_ok, lugares_ok, vars_ok, acts_ok, estr_ok = validar_consulta(
-        cat, anios, lugares, variables, actividades, estratos)
+        cat, anios, lugares, variables, actividades, estratos, solo_total=solo_total)
+    usar_total = bool(solo_total or con_total)  # casilla "Total" del SAIC
 
     sesion = sesion or crear_sesion()
 
-    esperadas = contar_filas(sesion, anios_ok, lugares_ok, acts_ok, estr_ok) if verificar else None
+    esperadas = (contar_filas(sesion, anios_ok, lugares_ok, acts_ok, estr_ok, total=usar_total)
+                 if verificar else None)
     if verificar:
         print("  filas según el SAIC:", esperadas if esperadas is not None else "(no pude verificar)")
 
     todas, primera_anterior = [], None
     for pagina in range(MAX_PAGINAS):
-        payload = armar_payload(anios_ok, lugares_ok, vars_ok, acts_ok, estr_ok, pagina)
+        payload = armar_payload(anios_ok, lugares_ok, vars_ok, acts_ok, estr_ok, pagina,
+                                total=usar_total)
         resp = sesion.post(URL_TABLA, json=payload, timeout=60)
         if resp.status_code != 200:
             raise RuntimeError(f"HTTP {resp.status_code}: {resp.text[:500]}")
@@ -342,7 +351,7 @@ def consultar_saic(anios, lugares, variables, actividades=None, estratos=None,
 
 
 def descargar_excel_oficial(anios, lugares, variables, actividades=None, estratos=None,
-                            ruta=None, cat=None, sesion=None):
+                            ruta=None, cat=None, sesion=None, solo_total=False, con_total=False):
     """
     Descarga el archivo Excel oficial del SAIC (el del botón de descarga).
     El servidor lo entrega como texto base64 dentro de la respuesta.
@@ -350,10 +359,11 @@ def descargar_excel_oficial(anios, lugares, variables, actividades=None, estrato
     """
     cat = cat or Catalogos()
     anios_ok, lugares_ok, vars_ok, acts_ok, estr_ok = validar_consulta(
-        cat, anios, lugares, variables, actividades, estratos)
+        cat, anios, lugares, variables, actividades, estratos, solo_total=solo_total)
     sesion = sesion or crear_sesion()
 
-    payload = armar_payload(anios_ok, lugares_ok, vars_ok, acts_ok, estr_ok, 0, reg=0)
+    payload = armar_payload(anios_ok, lugares_ok, vars_ok, acts_ok, estr_ok, 0, reg=0,
+                            total=bool(solo_total or con_total))
     resp = sesion.post(URL_EXPORTA, json=payload, timeout=120)
     if resp.status_code != 200:
         raise RuntimeError(f"HTTP {resp.status_code}: {resp.text[:500]}")
@@ -387,7 +397,7 @@ def nombre_base(anios, lugares):
 # ------------------------------------------------------------------ CONSULTA DE PRUEBA
 if __name__ == "__main__":
     ANIOS = [2023]
-    LUGARES = ["Monterrey, Nuevo León"]   # prueba también "Monterrey, Nuevo León"
+    LUGARES = ["Nuevo León"]   # prueba también "Monterrey, Nuevo León"
     VARIABLES = ["H001A", "A111A"]
     ACTIVIDADES = None   # None = los sectores principales; o una lista, ej. ["112"]
     ESTRATOS = None      # None = ninguna casilla marcada

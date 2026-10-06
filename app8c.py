@@ -638,9 +638,7 @@ function mostrarPlan(d) {
   const b3 = document.createElement('button'); b3.textContent = 'Descargar CSV'; b3.className = 'sec';
   b3.disabled = !d.listo; b3.onclick = () => descargar('/api/descargar_csv', 'SAIC.csv', 'Preparando el CSV…');
   acc.appendChild(b1); acc.appendChild(b2); acc.appendChild(b3); caja.appendChild(acc);
-  const fu = document.createElement('p'); fu.className = 'fuente';
-  fu.textContent = 'Al usar estos datos cita: Fuente: INEGI, Censos Económicos 2024 (SAIC), consulta del ' + new Date().toLocaleDateString('es-MX') + '.';
-  caja.appendChild(fu);
+
 }
 
 async function interpretar() {

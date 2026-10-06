@@ -482,6 +482,8 @@ PAGINA = r"""<!doctype html>
   #errorAcceso, #estadoReporte { margin-top:.5rem; color:var(--rojo); min-height:1.2rem; }
   #abrirReporte { cursor:pointer; text-decoration:underline; color:var(--azul); }
   .fila { display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:.5rem 0; }
+  .controles { display:flex; gap:.8rem; flex-wrap:wrap; align-items:center; margin:.6rem 0; }
+  .fuente { font-size:.85rem; color:#52606d; }
 </style>
 </head>
 <body>
@@ -503,12 +505,15 @@ PAGINA = r"""<!doctype html>
   <a data-ej="Dame del año censal 2008, de Nuevo León, de todos los sectores, variables K000A e I000A">2008 · Nuevo León · K000A e I000A</a>
   <a data-ej="variables relacionadas con el PIB de Chihuahua en 2023">PIB · Chihuahua · 2023</a>
   <a data-ej="gastos por consumo de las manufacturas en Monterrey en 2018">Manufacturas · Monterrey · 2018</a>
+  <a data-ej="compara el personal ocupado de Chihuahua y Sonora en 2018 y 2023">Comparar · Chihuahua y Sonora</a>
+  <a data-ej="evolución del personal ocupado en Chihuahua entre 2003 y 2023">Evolución · Chihuahua 2003-2023</a>
 </div>
 <button id="btnInterpretar">Interpretar</button>
 <div id="estado"></div>
 
 <div id="plan" class="tarjeta" hidden></div>
 <div id="tabla"></div>
+<div id="grafica"></div>
 
 <div id="reporte" class="tarjeta" hidden>
   <strong>Reportar un problema o sugerencia</strong>
@@ -524,7 +529,7 @@ PAGINA = r"""<!doctype html>
 </div>
 
 <footer>
-  Fuente de los datos: INEGI, Censos Económicos (SAIC). Este sitio es independiente y no está afiliado al INEGI.
+  Fuente: INEGI, Censos Económicos 2024 (SAIC). Este sitio es independiente: no está afiliado al INEGI ni cuenta con su respaldo oficial. La interpretación de las peticiones la hace este sitio y puede equivocarse; revisa el resumen antes de usar los datos.
   Las celdas vacías (—) son datos que el INEGI omite por confidencialidad y reserva, no son ceros.
   <br>Para mejorar el servicio se guarda lo que escribes (sin tu nombre ni datos personales).
   <a id="abrirReporte" hidden>Reportar un problema</a>
@@ -633,11 +638,14 @@ function mostrarPlan(d) {
   const b3 = document.createElement('button'); b3.textContent = 'Descargar CSV'; b3.className = 'sec';
   b3.disabled = !d.listo; b3.onclick = () => descargar('/api/descargar_csv', 'SAIC.csv', 'Preparando el CSV…');
   acc.appendChild(b1); acc.appendChild(b2); acc.appendChild(b3); caja.appendChild(acc);
+  const fu = document.createElement('p'); fu.className = 'fuente';
+  fu.textContent = 'Al usar estos datos cita: Fuente: INEGI, Censos Económicos 2024 (SAIC), consulta del ' + new Date().toLocaleDateString('es-MX') + '.';
+  caja.appendChild(fu);
 }
 
 async function interpretar() {
   const texto = $('texto').value.trim(); if (!texto) return;
-  $('btnInterpretar').disabled = true; vaciar($('tabla')); $('plan').hidden = true; estado('Interpretando…');
+  $('btnInterpretar').disabled = true; vaciar($('tabla')); vaciar($('grafica')); $('plan').hidden = true; estado('Interpretando…');
   try {
     const r = await post('/api/interpretar', { texto }); const d = await r.json();
     if (!r.ok) { estado(d.error || 'Ocurrió un error.', true); return; }
@@ -652,7 +660,7 @@ function formato(v) {
 }
 
 async function verDatos() {
-  estado('Consultando el SAIC…'); vaciar($('tabla'));
+  estado('Consultando el SAIC…'); vaciar($('tabla')); vaciar($('grafica'));
   try {
     const r = await post('/api/consultar', { plan: planActual }); const d = await r.json();
     if (!r.ok) { estado(d.error || 'Ocurrió un error.', true); return; }
@@ -670,7 +678,7 @@ async function verDatos() {
         tr.appendChild(td); });
       t.appendChild(tr);
     });
-    cont.appendChild(t); $('tabla').appendChild(cont); estado(d.filas.length + ' filas.');
+    cont.appendChild(t); $('tabla').appendChild(cont); estado(d.filas.length + ' filas.'); mostrarGrafica(d);
   } catch (e) { estado('No pude conectar con el servidor.', true); }
 }
 
@@ -685,6 +693,198 @@ async function descargar(url, respaldo, mensaje) {
     a.download = m ? m[1] : respaldo; document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(a.href); estado('');
   } catch (e) { estado('No pude conectar con el servidor.', true); }
+}
+
+const COLORES = ['#1e5aa8', '#e07b00', '#2a9d8f', '#b3261e', '#7b4bb3', '#6c757d', '#c9a227', '#1d6b3a'];
+const SVGNS = 'http://www.w3.org/2000/svg';
+const ETIQ = { act: 'Actividad', anio: 'Año', lugar: 'Lugar', 'anio+lugar': 'Año y lugar', ninguno: 'Ninguno' };
+const DIM = { act: f => f.act, anio: f => f.anio, lugar: f => f.lugar,
+  'anio+lugar': f => f.lugar + ' · ' + f.anio, ninguno: f => 'Valor' };
+
+function filasObjeto(d) {
+  const c = d.columnas;
+  const iA = c.findIndex(x => x.startsWith('Año')), iE = c.indexOf('Entidad'), iM = c.indexOf('Municipio');
+  const iAct = c.findIndex(x => x.startsWith('Actividad'));
+  const vars = c.map((n, i) => ({ nombre: n, i })).filter(v => v.nombre.includes('|'));
+  const filas = d.filas.map(f => ({
+    anio: String(f[iA]),
+    lugar: (iM >= 0 && f[iM]) ? String(f[iE]) + ' · ' + String(f[iM]) : String(f[iE]),
+    act: iAct >= 0 ? String(f[iAct]) : '',
+    vals: vars.map(v => (typeof f[v.i] === 'number' ? f[v.i] : null)),
+  }));
+  return { filas, vars: vars.map(v => v.nombre.replace('|', ' · ')) };
+}
+
+function autoEjes(filas) {
+  const n = k => new Set(filas.map(f => f[k])).size;
+  const na = n('act'), ny = n('anio'), nl = n('lugar');
+  if (na > 1) return { x: 'act', serie: (ny > 1 && nl > 1) ? 'anio+lugar' : (ny > 1 ? 'anio' : (nl > 1 ? 'lugar' : 'ninguno')) };
+  if (ny > 1) return { x: 'anio', serie: nl > 1 ? 'lugar' : 'ninguno' };
+  if (nl > 1) return { x: 'lugar', serie: 'ninguno' };
+  return { x: null, serie: 'ninguno' };
+}
+
+function el(tag, attrs, texto) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (texto !== undefined) e.textContent = texto;
+  return e;
+}
+function numTxt(v) { return v.toLocaleString('es-MX', { maximumFractionDigits: Math.abs(v) >= 1000 ? 0 : 2 }); }
+function corto(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+
+function dibujarGrafica(area, nota, filas, iv, x, serie, nombreVar) {
+  vaciar(area); nota.textContent = ''; nota.hidden = true;
+  if (serie === x) serie = 'ninguno';
+  const fx = DIM[x], fs = DIM[serie];
+  const cats = new Map(), totSerie = new Map(); let duplicado = false;
+  filas.forEach(f => {
+    const c = fx(f), s = fs(f), v = f.vals[iv];
+    if (!cats.has(c)) cats.set(c, new Map());
+    if (cats.get(c).has(s)) duplicado = true;
+    cats.get(c).set(s, v);
+    totSerie.set(s, (totSerie.get(s) || 0) + (v || 0));
+  });
+  if (duplicado) {
+    nota.textContent = 'Con esta combinación hay varias filas por barra. Elige una opción en "Colores por" (por ejemplo, Año o Lugar).';
+    nota.hidden = false; return;
+  }
+  let series = [...totSerie.keys()].sort((a, b) => totSerie.get(b) - totSerie.get(a));
+  const avisos = [];
+  if (series.length > 8) { avisos.push('Se muestran las 8 series mayores de ' + series.length + '.'); series = series.slice(0, 8); }
+  const suma = c => series.reduce((a, s) => a + (cats.get(c).get(s) || 0), 0);
+  let nombres = [...cats.keys()];
+  if (x === 'anio') nombres.sort(); else nombres.sort((a, b) => suma(b) - suma(a));
+  if (nombres.length > 25) { avisos.push('Se muestran las 25 categorías mayores de ' + nombres.length + '.'); nombres = nombres.slice(0, 25); }
+  if (avisos.length) { nota.textContent = avisos.join(' '); nota.hidden = false; }
+
+  const barH = 16, gap = 12, izq = 260, der = 90, W = 900, top = 56;
+  const grupo = series.length * barH + gap, H = top + nombres.length * grupo + 34;
+  let max = 0;
+  nombres.forEach(c => series.forEach(s => { const v = cats.get(c).get(s); if (typeof v === 'number' && v > max) max = v; }));
+  if (max <= 0) max = 1;
+  const svg = el('svg', { xmlns: SVGNS, viewBox: '0 0 ' + W + ' ' + H, width: W, height: H });
+  svg.style.maxWidth = '100%'; svg.style.height = 'auto';
+  svg.appendChild(el('rect', { x: 0, y: 0, width: W, height: H, fill: '#ffffff' }));
+  const T = { 'font-family': 'Arial, Helvetica, sans-serif', fill: '#1f2933' };
+  svg.appendChild(el('text', Object.assign({ x: 12, y: 22, 'font-size': 15, 'font-weight': 'bold' }, T), corto(nombreVar, 95)));
+  if (serie !== 'ninguno') {
+    let lx = 12;
+    series.forEach((s, i) => {
+      svg.appendChild(el('rect', { x: lx, y: 33, width: 11, height: 11, fill: COLORES[i % COLORES.length] }));
+      const et = corto(s, 28);
+      svg.appendChild(el('text', Object.assign({ x: lx + 16, y: 43, 'font-size': 11 }, T), et));
+      lx += 16 + et.length * 6.2 + 18;
+    });
+  }
+  nombres.forEach((c, j) => {
+    const y0 = top + j * grupo;
+    const et = el('text', Object.assign({ x: izq - 8, y: y0 + (series.length * barH) / 2 + 4, 'font-size': 11, 'text-anchor': 'end' }, T), corto(c, 40));
+    et.appendChild(el('title', {}, c)); svg.appendChild(et);
+    series.forEach((s, i) => {
+      const v = cats.get(c).get(s), y = y0 + i * barH;
+      if (typeof v === 'number') {
+        const w = Math.max(1, (v / max) * (W - izq - der));
+        const r = el('rect', { x: izq, y: y, width: w, height: barH - 3, fill: COLORES[i % COLORES.length], class: 'barra' });
+        r.appendChild(el('title', {}, c + (serie !== 'ninguno' ? ' · ' + s : '') + ': ' + numTxt(v))); svg.appendChild(r);
+        svg.appendChild(el('text', Object.assign({ x: izq + w + 5, y: y + barH - 5, 'font-size': 10 }, T), numTxt(v)));
+      } else {
+        svg.appendChild(el('text', { x: izq + 4, y: y + barH - 5, 'font-size': 10, 'font-family': T['font-family'], fill: '#8a949e' }, '— (dato reservado)'));
+      }
+    });
+  });
+  svg.appendChild(el('text', { x: 12, y: H - 10, 'font-size': 10, 'font-family': T['font-family'], fill: '#52606d' },
+    'Fuente: INEGI, Censos Económicos 2024 (SAIC).'));
+  area.appendChild(svg);
+}
+
+function descargarPNG(svg) {
+  const clon = svg.cloneNode(true); clon.removeAttribute('style');
+  const xml = new XMLSerializer().serializeToString(clon);
+  const w = parseInt(svg.getAttribute('width'), 10), h = parseInt(svg.getAttribute('height'), 10);
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas'); c.width = w * 2; c.height = h * 2;
+    const g = c.getContext('2d'); g.scale(2, 2); g.drawImage(img, 0, 0, w, h);
+    c.toBlob(b => {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'grafica_saic.png';
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+    });
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
+}
+
+function tablaCambios(filas, iv, nombreVar) {
+  const anios = [...new Set(filas.map(f => f.anio))].sort();
+  if (anios.length < 2) return null;
+  const ini = anios[0], fin = anios[anios.length - 1];
+  const m = new Map();
+  filas.forEach(f => {
+    const k = f.lugar + '||' + f.act;
+    if (!m.has(k)) m.set(k, { lugar: f.lugar, act: f.act });
+    if (f.anio === ini) m.get(k).a = f.vals[iv];
+    if (f.anio === fin) m.get(k).b = f.vals[iv];
+  });
+  let datos = [...m.values()].filter(r => typeof r.a === 'number' && typeof r.b === 'number');
+  datos.forEach(r => { r.cambio = r.b - r.a; r.pct = r.a !== 0 ? (r.cambio / r.a) * 100 : null; });
+  datos.sort((p, q) => Math.abs(q.cambio) - Math.abs(p.cambio));
+  const total = datos.length; datos = datos.slice(0, 30);
+  const caja = document.createElement('div'); caja.className = 'contenedor-tabla';
+  const h = document.createElement('p'); const hb = document.createElement('strong');
+  hb.textContent = 'Cambio entre ' + ini + ' y ' + fin + ' · ' + nombreVar; h.appendChild(hb); caja.appendChild(h);
+  if (!datos.length) {
+    const p = document.createElement('p'); p.textContent = 'No hay datos comparables entre ' + ini + ' y ' + fin + ' (puede haber datos reservados).';
+    caja.appendChild(p); return caja;
+  }
+  const t = document.createElement('table'), cab = document.createElement('tr');
+  ['Lugar', 'Actividad', ini, fin, 'Cambio', 'Cambio %'].forEach(x => { const th = document.createElement('th'); th.textContent = x; cab.appendChild(th); });
+  t.appendChild(cab);
+  datos.forEach(r => {
+    const tr = document.createElement('tr');
+    [r.lugar, r.act, numTxt(r.a), numTxt(r.b), (r.cambio > 0 ? '+' : '') + numTxt(r.cambio),
+     r.pct === null ? '—' : (r.pct > 0 ? '+' : '') + r.pct.toFixed(1) + ' %'].forEach((x, i) => {
+      const td = document.createElement('td'); td.textContent = x; if (i >= 2) td.className = 'num'; tr.appendChild(td);
+    });
+    t.appendChild(tr);
+  });
+  caja.appendChild(t);
+  const nota = document.createElement('p'); nota.className = 'fuente';
+  nota.textContent = (total > 30 ? 'Se muestran los 30 cambios mayores de ' + total + '. ' : '') +
+    'Los montos en pesos de censos anteriores pueden requerir ajuste por inflación (la nota metodológica del SAIC menciona inflactores por año); ' +
+    'los conteos, como el personal ocupado, no se ven afectados.';
+  caja.appendChild(nota);
+  return caja;
+}
+
+function crearSelect(padre, etiqueta, opciones, valor) {
+  const l = document.createElement('label'); l.textContent = etiqueta + ': ';
+  const s = document.createElement('select');
+  opciones.forEach(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; s.appendChild(o); });
+  s.value = valor; l.appendChild(s); padre.appendChild(l); return s;
+}
+
+function mostrarGrafica(d) {
+  const cont = $('grafica'); vaciar(cont);
+  const { filas, vars } = filasObjeto(d), auto = autoEjes(filas);
+  if (!filas.length || !vars.length || !auto.x) return;
+  const panel = document.createElement('div'); panel.className = 'tarjeta';
+  const titulo = document.createElement('strong'); titulo.textContent = 'Gráfica y comparación'; panel.appendChild(titulo);
+  const ctl = document.createElement('div'); ctl.className = 'controles'; panel.appendChild(ctl);
+  const selV = crearSelect(ctl, 'Variable', vars.map((n, i) => [String(i), n]), '0');
+  const selX = crearSelect(ctl, 'Eje', ['act', 'anio', 'lugar'].map(k => [k, ETIQ[k]]), auto.x);
+  const selS = crearSelect(ctl, 'Colores por', ['ninguno', 'anio', 'lugar', 'act', 'anio+lugar'].map(k => [k, ETIQ[k]]), auto.serie);
+  const bPng = document.createElement('button'); bPng.className = 'sec'; bPng.textContent = 'Descargar imagen (PNG)'; ctl.appendChild(bPng);
+  const nota = document.createElement('div'); nota.className = 'msg aviso'; nota.hidden = true; panel.appendChild(nota);
+  const area = document.createElement('div'); area.className = 'contenedor-tabla'; panel.appendChild(area);
+  const cambios = document.createElement('div'); panel.appendChild(cambios);
+  const redibujar = () => {
+    const iv = parseInt(selV.value, 10);
+    dibujarGrafica(area, nota, filas, iv, selX.value, selS.value, vars[iv]);
+    vaciar(cambios); const t = tablaCambios(filas, iv, vars[iv]); if (t) cambios.appendChild(t);
+  };
+  [selV, selX, selS].forEach(s => { s.onchange = redibujar; });
+  bPng.onclick = () => { const svg = area.querySelector('svg'); if (svg) descargarPNG(svg); };
+  cont.appendChild(panel); redibujar();
 }
 
 $('entrar').onclick = entrar;

@@ -25,6 +25,8 @@ import os
 import re
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeout
 
 from saic_motor3 import (CARPETA_CAT, Catalogos, consultar_saic, crear_sesion,
                          descargar_excel_oficial, nombre_base, normalizar, _lista)
@@ -41,8 +43,10 @@ MODELOS_RESPALDO = ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash",
 _env = os.environ.get("GEMINI_MODELOS_RESPALDO", "").strip()
 if _env:
     MODELOS_RESPALDO = [m.strip().replace("models/", "") for m in _env.split(",") if m.strip()]
-ESPERAS = (0, 3, 8, 15)   # reintentos del modelo principal si Gemini está saturado (503)
-ESPERAS_RESPALDO = (0, 3)  # reintentos de cada modelo de respaldo
+ESPERAS = (0, 3, 6)       # reintentos del modelo principal si Gemini está saturado (503)
+TIEMPO_POR_LLAMADA = 20   # segundos máximos que se espera una respuesta de Gemini
+TIEMPO_TOTAL_IA = 45      # segundos máximos entre todos los reintentos y modelos
+ESPERAS_RESPALDO = (0,)    # un intento por cada modelo de respaldo
 MAX_LUGARES = 600         # tope de lugares por consulta (Oaxaca tiene 570 municipios)
 RUTA_CACHE_IA = os.path.join(CARPETA_CAT, "_cache_interprete.json")
 
@@ -60,13 +64,19 @@ FRASES_TODOS_ESTADOS = ("todos los estados", "todas las entidades federativas",
 # --------------------------------------------------------------------------
 NOTA_PIB = ("El SAIC no publica el PIB. El valor agregado censal bruto (A131A) "
             "es la variable más cercana, pero no equivale al PIB.")
+NOTA_POBLACION = ("En el SAIC la medida de ocupación es el personal ocupado total (H001A); no es "
+                  "la 'población ocupada' de las encuestas de hogares.")
 GLOSARIO = {
+    "poblacion ocupada": (["H001A"], NOTA_POBLACION),
+    "gastos por consumo": (["K000A"], None),
     "pib": (["A131A"], NOTA_PIB),
     "producto interno bruto": (["A131A"], NOTA_PIB),
     "valor agregado censal bruto": (["A131A"], None),
     "valor agregado": (["A131A"], None),
     "produccion bruta": (["A111A"], None),
     "personal ocupado": (["H001A"], None),
+    "poblacion ocupada": (["H001A"], "El SAIC no tiene 'población ocupada' (ese dato viene de encuestas "
+                                     "de hogares); usé personal ocupado total (H001A) de los Censos Económicos."),
     "empleo": (["H001A"], "Usé personal ocupado total (H001A) como medida de empleo."),
     "empleos": (["H001A"], "Usé personal ocupado total (H001A) como medida de empleo."),
     "remuneraciones": (["J000A"], None),
@@ -86,8 +96,25 @@ RELLENO = {
     "variable", "variables", "dato", "datos", "todos", "todas", "sectores",
     "total", "millones", "pesos", "relacionada", "relacionadas", "relacionado",
     "relacionados", "estado", "cifras", "informacion", "sobre", "que", "se",
-    "entidad", "lugar",
+    "entidad", "lugar", "solo", "unicamente", "solamente",
 }
+
+# Nombres cortos de actividades (sin acentos, minúsculas) -> clave del SAIC.
+# ES TUYO: añade o corrige con tu criterio. Solo se usan claves que existan en el catálogo.
+ALIAS_ACTIVIDADES = {
+    "industrias manufactureras": "31-33", "industria manufacturera": "31-33",
+    "manufacturas": "31-33", "manufactura": "31-33",
+    "agricultura": "11", "mineria": "21", "energia electrica": "22", "construccion": "23",
+    "comercio al por mayor": "43", "comercio al por menor": "46",
+    "transportes": "48-49", "medios masivos": "51",
+    "servicios financieros": "52", "servicios inmobiliarios": "53",
+    "servicios profesionales": "54", "servicios de apoyo a los negocios": "56",
+    "servicios educativos": "61", "servicios de salud": "62",
+    "esparcimiento": "71", "alojamiento temporal": "72", "otros servicios": "81",
+}
+
+# Palabras antes de un municipio que indican que de verdad se habla de él.
+CONTEXTO_MUNICIPIO = {"de", "del", "en", "para", "municipio", "mpio", "ciudad", "por", "a"}
 
 
 # ------------------------------------------------------------------ REGLAS
@@ -290,8 +317,11 @@ def _extraer_estratos(t, cat):
 def extraer_determinista(texto, cat):
     t = " " + re.sub(r"[,;:()\[\]{}¿?¡!\"'.]", " ", normalizar(texto)) + " "
     r = {"anios": [], "lugares": [], "variables": [], "estratos": [], "notas": [],
-         "avisos": [], "aclarar": [], "opciones": [], "residuo": []}
+         "avisos": [], "aclarar": [], "opciones": [], "residuo": [],
+         "actividades": [], "solo_total": False, "con_total": False}
     validos = sorted(int(a) for a in cat.anios)
+
+    t0 = t  # copia del texto antes de recortarlo (para detectar "Municipio, Estado")
 
     # 0a) "todos los estados de X" (ambiguo), "todos los estados" y "todos los municipios de X"
     hallados, t = _quitar(t, _patron_estados_de(cat))
@@ -328,6 +358,60 @@ def extraer_determinista(texto, cat):
     # 0c-bis) "todas las actividades (económicas)" = todos los sectores (valor por defecto)
     hallados, t = _quitar(t, r"(?<!\w)todas las actividades(?: economicas)?(?!\w)"
                              r"|(?<!\w)sectores economicos(?!\w)")
+
+    # 0e) casillas del SAIC: "desmarca con unidades", "desmarca todos los sectores",
+    #     "sin sectores", "solo el total", "incluye el total"
+    quitar = r"(?:desmarca(?:r)?|desmarcando|quita(?:r)?|elimina(?:r)?|excluye|excluir|sin|no incluyas|no incluir)"
+    poner = r"(?:marca(?:r)?|marcando|incluye|incluir|incluyendo|agrega(?:r)?|anade|anadir|con)"
+    sin_ue = con_ue = False
+    hallados, t = _quitar(t, rf"(?<!\w){quitar}\s+(?:(?:con|las|la|el)\s+)*unidades(?:\s+economicas)?(?!\w)")
+    sin_ue = bool(hallados)
+    hallados, t = _quitar(t, rf"(?<!\w){quitar}\s+(?:(?:con|los|todos los|todas las|todo)\s+)*"
+                             r"(?:sectores|actividades(?:\s+economicas)?)(?!\w)"
+                             r"|(?<!\w)sin desglose (?:por|de)\s+(?:sector|sectores|actividad|actividades)(?!\w)"
+                             r"|(?<!\w)(?:solo|solamente|unicamente)\s+(?:el\s+)?total(?!\w)")
+    if hallados:
+        r["solo_total"] = True
+        r["notas"].append("Entendí que no quieres desglose por sector: consulto solo la fila de total.")
+    hallados, t = _quitar(t, r"(?<!\w)(?:incluye(?:ndo)?|marca(?:r)?|agrega(?:r)?|con|mas)\s+"
+                             r"(?:(?:el|la|fila de|renglon de)\s+)*total(?!\s+(?:nacional|estatal|de)\b)(?!\w)")
+    if hallados:
+        r["con_total"] = True
+        r["notas"].append("Incluí la fila de total además del desglose.")
+    _, t = _quitar(t, r"(?<!\w)desmarca(?:r)?\s+(?:el\s+)?total(?!\w)")          # desmarcar el total = valor por defecto
+    _, t = _quitar(t, r"(?<!\w)(?:marca(?:r)?|incluye(?:r)?)\s+(?:(?:los|todos los)\s+)*sectores(?!\w)")
+    hallados, t = _quitar(t, rf"(?<!\w){poner}\s+(?:(?:las|la|el)\s+)*unidades(?:\s+economicas)?(?!\w)")
+    con_ue = bool(hallados)
+
+    # 0f) actividades por clave: "sector 11", "sectores 31-33 y 46", "subsector 112", "rama 1125"
+    siguiente = re.compile(r"\s*(?:y|e)?\s*(\d{2,6}(?:-\d{2})?)(?!\d)")
+    recortes = []
+    for m in list(re.finditer(r"(?<!\w)(?:sub)?sector(?:es)?(?!\w)|(?<!\w)(?:sub)?ramas?(?!\w)|(?<!\w)clases?(?!\w)", t)):
+        pos, hallo = m.end(), False
+        while True:
+            mm = siguiente.match(t, pos)
+            if not mm:
+                break
+            codigo = mm.group(1)
+            if codigo in cat.actividades:
+                _agregar(r["actividades"], [codigo])
+            elif hallo or re.fullmatch(r"(?:19|20)\d{2}", codigo):
+                break  # un año u otro dato que no es actividad: no se toca
+            else:
+                _aclarar(r, f"La actividad '{codigo}' no existe en el catálogo del SAIC.")
+            pos, hallo = mm.end(), True
+        if hallo:
+            recortes.append((m.start(), pos))
+    for ini, fin in recortes:
+        t = t[:ini] + " " * (fin - ini) + t[fin:]
+
+    # 0g) actividades por nombre corto: "manufacturas", "comercio al por menor", "construcción"
+    for nombre in sorted(ALIAS_ACTIVIDADES, key=len, reverse=True):
+        clave = ALIAS_ACTIVIDADES[nombre]
+        if clave in cat.actividades:
+            hallados, t = _quitar(t, rf"(?<!\w){re.escape(nombre)}(?!\w)")
+            if hallados:
+                _agregar(r["actividades"], [clave])
 
     # 0d) estratos: "estrato de 11 a 50", "estratos del 11 al 50", "251 y más", "más de 250"
     if re.search(r"(?<!\w)estratos?(?!\w)", t):
@@ -382,15 +466,28 @@ def extraer_determinista(texto, cat):
             if nota and nota not in r["notas"]:
                 r["notas"].append(nota)
 
-    # 5c) "el municipio de Chihuahua" (singular) es un municipio, no el estado: se deja a la IA
+    if con_ue and "UE" in cat.variables and "UE" not in r["variables"]:
+        r["variables"].append("UE")
+    if sin_ue and "UE" in r["variables"]:
+        r["variables"].remove("UE")
+        r["notas"].append("Quité 'unidades económicas' de las variables, como pediste.")
+
+    # 5c) "el municipio de Chihuahua" (singular) es el municipio homónimo, no el estado
     extra_residuo = []
     nombres_est = sorted((n for n, c in cat._estados.items() if c != "00" and n != "mexico"),
                          key=len, reverse=True)
     if nombres_est:
         alt_est = "|".join(re.escape(n) for n in nombres_est)
         hallados, t = _quitar(t, r"(?<!\w)municipio\s+(?:de\s+la\s+|de\s+|del\s+)?"
-                                 rf"(?:estado\s+de\s+)?(?:{alt_est})(?!\w)")
-        extra_residuo = [m.group(0).strip() for m in hallados]
+                                 rf"(?:estado\s+de\s+)?({alt_est})(?!\w)")
+        for m in hallados:
+            clave_estado = cat._estados[m.group(1)]
+            homonimos = [k for k in _municipios_de(cat, clave_estado)
+                         if normalizar(cat.lugares[k]["nombre"]) == m.group(1)]
+            if len(homonimos) == 1:
+                _agregar(r["lugares"], homonimos)
+            else:
+                extra_residuo.append(m.group(0).strip())
 
     # 6) estados, nacional y alias (nombres más largos primero).
     #    "México" suelto es ambiguo (país o Estado de México): se pide aclarar.
@@ -428,6 +525,56 @@ def extraer_determinista(texto, cat):
         elif not r["lugares"]:
             _aclarar(r, "Para desglosar por municipio indica uno o varios estados "
                         "(por ejemplo: 'de Chihuahua por municipio').")
+
+    # 6c) municipios por su nombre: "de Monterrey", "Guadalupe, Zacatecas", "Monterrey 2023".
+    #     Solo se aceptan cuando es seguro (contexto claro, nombre largo o con estado);
+    #     lo dudoso se deja a la IA.
+    palabras_dominio = set(RELLENO) | {w for g in GLOSARIO for w in g.split()} | \
+        {w for f in list(cat.variables.values()) + list(cat.actividades.values())
+         for w in normalizar(f["nombre"]).split()}
+    alt_est2 = "|".join(re.escape(n) for n in sorted(
+        (n for n, c in cat._estados.items() if c != "00" and n != "mexico"), key=len, reverse=True))
+    palabras = [(m.group(0), m.start(), m.end()) for m in re.finditer(r"[a-z0-9\-]+", t)]
+    ocupados = set()
+    for largo in range(5, 0, -1):
+        for i in range(len(palabras) - largo + 1):
+            tramo = palabras[i:i + largo]
+            if any(j in ocupados for j in range(i, i + largo)):
+                continue
+            if any(t[tramo[k][2]:tramo[k + 1][1]].strip() for k in range(largo - 1)):
+                continue  # no son palabras contiguas
+            nombre = " ".join(w for w, _, _ in tramo)
+            claves = cat._municipios.get(nombre)
+            if not claves or nombre in cat._estados:
+                continue
+            previa = palabras[i - 1][0] if i > 0 else None
+            con_estado = re.search(rf"(?<!\w){re.escape(nombre)}\s+(?:de\s+|del\s+)?(?:estado\s+de\s+)?({alt_est2})(?!\w)", t0) \
+                if alt_est2 else None
+            multipalabra = largo > 1
+            if not multipalabra and (nombre in palabras_dominio or len(nombre) < 5):
+                continue
+            contexto = previa in CONTEXTO_MUNICIPIO
+            unico_largo = len(claves) == 1 and len(nombre) >= 7
+            if not (contexto or con_estado or multipalabra or unico_largo):
+                continue
+            if con_estado:
+                estado = cat._estados[con_estado.group(1)]
+                elegidos = [c for c in claves if cat.lugares[c]["padre"] == estado]
+                if not elegidos:
+                    continue
+                _agregar(r["lugares"], elegidos)
+                if estado in r["lugares"]:      # el estado solo era un calificativo
+                    r["lugares"].remove(estado)
+            elif len(claves) == 1:
+                _agregar(r["lugares"], claves)
+            else:
+                _aclarar(r, f"'{nombre.title()}' es ambiguo: hay {len(claves)} municipios con ese nombre. "
+                            "Elige uno.", "lugares",
+                         [(c, f"{cat.nombre_lugar(c)} ({c})") for c in claves[:6]])
+            ocupados.update(range(i, i + largo))
+    for j in sorted(ocupados):
+        _, a, b = palabras[j]
+        t = t[:a] + " " * (b - a) + t[b:]
 
     # 7) lo que sobra: palabras que las reglas no entienden
     sobran = re.findall(r"[a-z0-9\-]+", t)
@@ -478,11 +625,29 @@ def _contiene(mensaje, *marcas):
     return any(m in mensaje for m in marcas)
 
 
+def _generar(cliente, types, modelo, prompt):
+    """Llama a Gemini con un tiempo máximo: si se cuelga, no se espera más."""
+    def llamar():
+        return cliente.models.generate_content(
+            model=modelo, contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json", temperature=0))
+    ejecutor = ThreadPoolExecutor(max_workers=1)
+    futuro = ejecutor.submit(llamar)
+    try:
+        return futuro.result(timeout=TIEMPO_POR_LLAMADA)
+    except FuturesTimeout:
+        raise TimeoutError(f"503 UNAVAILABLE: {modelo} no respondió en {TIEMPO_POR_LLAMADA} s")
+    finally:
+        ejecutor.shutdown(wait=False)
+
+
 def llm_gemini(prompt):
     """
     Llama a Gemini y devuelve el texto de la respuesta (JSON).
     Prueba el modelo principal y, si está saturado (503), sin cuota (429) o no
-    disponible (404/403), pasa solo al siguiente de MODELOS_RESPALDO.
+    disponible (404/403), pasa solo al siguiente de MODELOS_RESPALDO. Nunca espera
+    más de TIEMPO_TOTAL_IA segundos en total.
     """
     clave = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if not clave:
@@ -493,16 +658,17 @@ def llm_gemini(prompt):
 
     cliente = genai.Client(api_key=clave)
     modelos = [MODELO] + [m for m in MODELOS_RESPALDO if m != MODELO]
+    inicio = time.monotonic()
 
     sin_cuota = saturado = False
     for i, modelo in enumerate(modelos):
         for espera in (ESPERAS if i == 0 else ESPERAS_RESPALDO):
+            if time.monotonic() - inicio > TIEMPO_TOTAL_IA:
+                raise RuntimeError("Gemini está tardando demasiado en responder. "
+                                   "Intenta de nuevo en un minuto.")
             time.sleep(espera)
             try:
-                resp = cliente.models.generate_content(
-                    model=modelo, contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json", temperature=0))
+                resp = _generar(cliente, types, modelo, prompt)
                 if i > 0:
                     print(f"[IA] respondió el modelo de respaldo {modelo}")
                 return resp.text
@@ -634,9 +800,9 @@ def interpretar(texto, cat=None, llm=None, usar_cache=True):
     cat = cat or Catalogos()
     d = extraer_determinista(texto, cat)
     plan = {"anios": d["anios"], "lugares": d["lugares"], "variables": d["variables"],
-            "actividades": [], "estratos": d["estratos"], "usa_ia": False, "supuestos": [],
+            "actividades": d["actividades"], "estratos": d["estratos"], "usa_ia": False, "supuestos": [],
             "avisos": d["avisos"], "aclarar": d["aclarar"], "opciones": d["opciones"],
-            "notas": d["notas"]}
+            "notas": d["notas"], "solo_total": d["solo_total"], "con_total": d["con_total"]}
 
     necesita_ia = bool(d["residuo"]) or not d["variables"] or \
         (not d["lugares"] and not d["aclarar"])
@@ -653,6 +819,9 @@ def interpretar(texto, cat=None, llm=None, usar_cache=True):
                 f"No pude usar la IA ({e}) y por reglas no entendí estas palabras: {sobran}. "
                 "Reescribe la petición con términos técnicos (claves, nombres de estados) "
                 "o intenta de nuevo más tarde.")
+
+    if plan["solo_total"] and plan["actividades"]:
+        _aclarar(plan, "Pediste solo el total y también actividades específicas; elige una de las dos.")
 
     if not plan["anios"] and not plan["aclarar"]:
         ultimo = max(int(a) for a in cat.anios)
@@ -683,10 +852,14 @@ def interpretar(texto, cat=None, llm=None, usar_cache=True):
 def _resumen(plan, cat):
     lugares = _resumir([f"{cat.nombre_lugar(c)} ({c})" for c in plan["lugares"]]) or ["(falta)"]
     variables = [f"{v} {cat.variables[v]['nombre']}" for v in plan["variables"]] or ["(faltan)"]
-    if plan["actividades"]:
+    if plan["solo_total"]:
+        acts = ["solo el total (sin desglose por sector)"]
+    elif plan["actividades"]:
         acts = [f"{a} {cat.actividades[a]['nombre']}" for a in plan["actividades"]]
     else:
         acts = [f"todos los sectores ({len(cat.sectores)})"]
+    if plan["con_total"] and not plan["solo_total"]:
+        acts = acts + ["+ fila de total"]
     estr = [cat.estratos[e]["nombre"] for e in plan["estratos"]] or ["ninguno"]
     return "\n".join([
         f"  Años:        {plan['anios']}",

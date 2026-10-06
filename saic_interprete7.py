@@ -97,6 +97,8 @@ RELLENO = {
     "total", "millones", "pesos", "relacionada", "relacionadas", "relacionado",
     "relacionados", "estado", "cifras", "informacion", "sobre", "que", "se",
     "entidad", "lugar", "solo", "unicamente", "solamente",
+    "compara", "comparar", "comparame", "comparativo", "comparacion", "contra", "versus", "vs",
+    "evolucion", "grafica", "graficas", "grafico", "graficos", "grafique", "tendencia",
 }
 
 # Nombres cortos de actividades (sin acentos, minúsculas) -> clave del SAIC.
@@ -422,9 +424,11 @@ def extraer_determinista(texto, cat):
             _, t = _quitar(t, r"(?<!\w)estratos?(?!\w)")
 
     # 1) rangos de años: "2003 a 2023" -> todos los años del catálogo en ese rango
-    hallados, t = _quitar(t, r"(?<!\d)(\d{4})\s+(?:a|al|hasta)\s+(\d{4})(?!\d)")
+    hallados, t = _quitar(t, r"(?<!\d)(?:entre\s+)?(\d{4})\s+(?:a|al|hasta)\s+(\d{4})(?!\d)"
+                             r"|(?<!\w)entre\s+(\d{4})\s+y\s+(\d{4})(?!\d)")
     for m in hallados:
-        ini, fin = sorted((int(m.group(1)), int(m.group(2))))
+        a1, a2 = (m.group(1), m.group(2)) if m.group(1) else (m.group(3), m.group(4))
+        ini, fin = sorted((int(a1), int(a2)))
         for a in validos:
             if ini <= a <= fin and a not in r["anios"]:
                 r["anios"].append(a)

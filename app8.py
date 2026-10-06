@@ -147,16 +147,22 @@ def llm_limitado(prompt):
 
 def plan_publico(plan):
     """Plan listo para mostrar en la página (con nombres legibles)."""
-    if plan["actividades"]:
+    if plan.get("solo_total"):
+        acts = ["Solo el total (sin desglose por sector)"]
+    elif plan["actividades"]:
         acts = [f"{a} {CAT.actividades[a]['nombre']}" for a in plan["actividades"]]
     else:
         acts = [f"Todos los sectores ({len(CAT.sectores)})"]
+    if plan.get("con_total") and not plan.get("solo_total"):
+        acts = acts + ["+ fila de total"]
     return {
         "anios": plan["anios"],
         "lugares": plan["lugares"],
         "variables": plan["variables"],
         "actividades": plan["actividades"],
         "estratos": plan["estratos"],
+        "solo_total": bool(plan.get("solo_total")),
+        "con_total": bool(plan.get("con_total")),
         "anios_txt": [str(a) for a in plan["anios"]],
         "lugares_txt": _resumir([f"{CAT.nombre_lugar(c)} ({c})" for c in plan["lugares"]]),
         "variables_txt": [f"{v} {CAT.variables[v]['nombre']}" for v in plan["variables"]],
@@ -188,8 +194,11 @@ def parametros(cuerpo):
     for clave in ("anios", "lugares", "variables"):
         if not datos[clave]:
             raise ValueError(f"La consulta no tiene {clave}.")
+    solo_total = bool(plan.get("solo_total"))
+    con_total = bool(plan.get("con_total"))
     return (datos["anios"], datos["lugares"], datos["variables"],
-            datos["actividades"] or None, datos["estratos"] or None)
+            None if solo_total else (datos["actividades"] or None),
+            datos["estratos"] or None, solo_total, con_total)
 
 
 def responder_error(e):
@@ -338,15 +347,17 @@ def api_consultar():
     if not permitir_visita():
         return jsonify(error="Demasiadas solicitudes. Espera un minuto."), 429
     try:
-        anios, lugares, variables, acts, estr = parametros(request.get_json(silent=True))
+        anios, lugares, variables, acts, estr, solo_total, con_total = parametros(
+            request.get_json(silent=True))
         a_ok, l_ok, v_ok, ac_ok, e_ok = silencioso(
-            validar_consulta, CAT, anios, lugares, variables, acts, estr)
+            validar_consulta, CAT, anios, lugares, variables, acts, estr, solo_total=solo_total)
         sesion = crear_sesion()
-        total = contar_filas(sesion, a_ok, l_ok, ac_ok, e_ok)
+        total = contar_filas(sesion, a_ok, l_ok, ac_ok, e_ok, total=(solo_total or con_total))
         if total is not None and total > MAX_FILAS_VISTA:
             return jsonify(ok=True, demasiado_grande=True, filas=total)
         df = silencioso(consultar_saic, anios, lugares, variables, acts, estr,
-                        cat=CAT, sesion=sesion, verificar=False)
+                        cat=CAT, sesion=sesion, verificar=False,
+                        solo_total=solo_total, con_total=con_total)
         if df.empty:
             return jsonify(ok=True, vacio=True, columnas=[], filas=[])
         df = df.rename(columns={"muni": "Municipio"})
@@ -358,18 +369,19 @@ def api_consultar():
 
 def obtener_excel_oficial(cuerpo):
     """Descarga el Excel oficial del SAIC. Devuelve (bytes, base_del_nombre)."""
-    anios, lugares, variables, acts, estr = parametros(cuerpo)
+    anios, lugares, variables, acts, estr, solo_total, con_total = parametros(cuerpo)
     a_ok, l_ok, v_ok, ac_ok, e_ok = silencioso(
-        validar_consulta, CAT, anios, lugares, variables, acts, estr)
+        validar_consulta, CAT, anios, lugares, variables, acts, estr, solo_total=solo_total)
     sesion = crear_sesion()
-    total = contar_filas(sesion, a_ok, l_ok, ac_ok, e_ok)
+    total = contar_filas(sesion, a_ok, l_ok, ac_ok, e_ok, total=(solo_total or con_total))
     if total is not None and total > MAX_FILAS_DESCARGA:
         raise ValueError(f"La consulta tiene {total} filas; el máximo permitido es "
                          f"{MAX_FILAS_DESCARGA}. Reduce años, lugares o actividades.")
     with tempfile.TemporaryDirectory() as tmp:
         ruta = os.path.join(tmp, "oficial.xlsx")
         silencioso(descargar_excel_oficial, anios, lugares, variables, acts, estr,
-                   ruta=ruta, cat=CAT, sesion=sesion)
+                   ruta=ruta, cat=CAT, sesion=sesion,
+                   solo_total=solo_total, con_total=con_total)
         with open(ruta, "rb") as f:
             contenido = f.read()
     nombres = [CAT.nombre_lugar(c) for c in l_ok]

@@ -1499,6 +1499,11 @@ PAGINA = r"""<!doctype html>
   #nombreCuenta { display:block; font-size:.85rem; line-height:1.5; }
   h2 { font-size:1.15rem; margin:.4rem 0; }
   dialog { border:1px solid var(--borde); border-radius:14px; width:min(90vw,420px); padding:1.3rem; color:#1f2933; }
+  #dialogoOrganizar { position:relative; }
+  #tituloOrganizar { padding-right:2.5rem; }
+  .cerrar-esquina { position:absolute; top:.7rem; right:.7rem; width:36px; height:36px; padding:0; display:grid; place-items:center; border:0; background:transparent; color:#52606d; font-size:1.7rem; line-height:1; border-radius:50%; cursor:pointer; }
+  .cerrar-esquina:hover { background:#eef2f6; }
+  .cerrar-esquina:focus-visible { outline:2px solid #215dab; }
   dialog::backdrop { background:rgba(15,23,42,.45); }
   #formCuenta label { display:block; margin:.7rem 0; }
   #formCuenta input { display:block; width:100%; box-sizing:border-box; font:inherit; padding:.6rem; border:1px solid var(--borde); border-radius:8px; margin-top:.25rem; }
@@ -1546,8 +1551,8 @@ PAGINA = r"""<!doctype html>
 </div>
   </div>
 </header>
-<h1>Consulta SAIC en lenguaje natural</h1>
-<p class="sub">Pide datos de los Censos Económicos (SAIC del INEGI) con tus propias palabras.</p>
+<h1 id="tituloPrincipal">Consulta SAIC en lenguaje natural</h1>
+<p id="subtituloPrincipal" class="sub">Pide datos de los Censos Económicos (SAIC del INEGI) con tus propias palabras.</p>
 
 <div id="acceso" class="tarjeta" hidden>
   <strong>Esta página es solo para personas invitadas</strong>
@@ -1562,9 +1567,11 @@ PAGINA = r"""<!doctype html>
   <div class="fila"><h2>Mis consultas</h2><button id="cerrarHistorial" class="sec" type="button">Cerrar</button></div>
   <p class="fuente">Se guardan automáticamente al consultar con tu sesión iniciada. “Actualizar y usar” consulta el año más reciente conocido por los catálogos del sitio.</p>
   <div class="filtros-historial"><input id="buscarHistorial" type="search" aria-label="Buscar consultas" placeholder="Buscar por nombre, etiqueta o nota"><select id="filtroCarpeta" aria-label="Filtrar por carpeta"><option value="todos">Todas las carpetas</option></select></div>
+  <div id="estadoHistorial" role="status"></div>
   <div id="listaHistorial" aria-live="polite"></div>
 </section>
 
+<div id="vistaConsulta">
 <textarea id="texto" rows="3" maxlength="500"
   placeholder="Ej.: gastos por consumo de las manufacturas en Monterrey en 2018"></textarea>
 <div class="ejemplos">Ejemplos:
@@ -1596,6 +1603,7 @@ PAGINA = r"""<!doctype html>
   <div id="estadoReporte"></div>
 </div>
 </div>
+</div>
 
 <footer>
   Fuente: INEGI, Censos Económicos (SAIC). Este sitio es independiente: no está afiliado al INEGI ni cuenta con su respaldo oficial. Las celdas vacías (—) son datos que el INEGI omite por confidencialidad y reserva, no son ceros. <a id="abrirReporte" hidden>Reportar un problema.</a>
@@ -1625,7 +1633,7 @@ PAGINA = r"""<!doctype html>
 </dialog>
 <dialog id="dialogoOrganizar" aria-labelledby="tituloOrganizar">
   <form id="formOrganizar" class="form-detalles">
-    <div class="fila"><h2 id="tituloOrganizar">Organizar consulta</h2><button id="cerrarOrganizar" class="sec" type="button">Cerrar</button></div>
+    <div class="fila"><h2 id="tituloOrganizar">Organizar consulta</h2><button id="cerrarOrganizar" class="cerrar-esquina" type="button" aria-label="Cerrar organizar consulta" title="Cerrar">×</button></div>
     <label>Nombre<input id="organizarTitulo" maxlength="120" required></label>
     <label>Etiquetas, separadas por comas<input id="organizarEtiquetas" maxlength="420" placeholder="Trabajo, manufacturas"></label>
     <label>Notas<textarea id="organizarNotas" rows="3" maxlength="2000" placeholder="¿Para qué usaste esta consulta?"></textarea></label>
@@ -1676,7 +1684,7 @@ async function cargarCuenta() {
     $('abrirLogin').hidden = !!cuentaUsuario; $('abrirRegistro').hidden = !!cuentaUsuario;
     $('abrirLogin').disabled = !d.habilitada; $('abrirRegistro').disabled = !d.habilitada;
     $('abrirHistorial').hidden = !cuentaUsuario; $('salirCuenta').hidden = !cuentaUsuario;
-    if (!cuentaUsuario) { $('panelHistorial').hidden = true; vaciar($('listaHistorial')); }
+    if (!cuentaUsuario) { mostrarVistaHistorial(false); vaciar($('listaHistorial')); }
   } catch (e) {
     $('nombreCuenta').textContent = 'No pude comprobar la cuenta. Recarga la página para intentar de nuevo.';
   }
@@ -1717,14 +1725,22 @@ async function salirCuenta() {
     planActual = null; contextoChat = null; datosChat = null; vistaGrafica = null; charla = []; limpiarResultados();
     $('texto').value = ''; $('plan').hidden = true;
     ['plan','tabla','grafica','mensajesChat','listaHistorial'].forEach(k => vaciar($(k)));
-    $('panelHistorial').hidden = true; await cargarCuenta(); estado('Sesión cerrada.');
+    mostrarVistaHistorial(false); await cargarCuenta(); estado('Sesión cerrada.');
   } catch (e) { estado('No pude cerrar la sesión. Intenta de nuevo.', true); }
   finally { $('salirCuenta').disabled = false; }
 }
 let historialActual = {consultas:[],carpetas:[]};
 let consultaEditando = null;
+function mostrarVistaHistorial(abierta) {
+  $('panelHistorial').hidden=!abierta;
+  $('vistaConsulta').hidden=abierta;
+  $('tituloPrincipal').hidden=abierta;
+  $('subtituloPrincipal').hidden=abierta;
+}
 async function cargarHistorial() {
-  $('panelHistorial').hidden = false; $('listaHistorial').textContent = 'Cargando tus consultas…';
+  const entrando=$('panelHistorial').hidden; mostrarVistaHistorial(true);
+  if(entrando)window.scrollTo(0,0);
+  $('estadoHistorial').textContent=''; $('listaHistorial').textContent = 'Cargando tus consultas…';
   try {
     const r = await fetch('/api/historial'); const d = await r.json();
     if (!r.ok) { $('listaHistorial').textContent = d.error || 'No pude cargar tu historial.'; return; }
@@ -1792,6 +1808,7 @@ async function usarHistorial(id, actualizar, acciones) {
   try {
     const r = await post('/api/historial/' + id + '/usar', { actualizar }); const d = await r.json();
     if (!r.ok) { estado(d.error || 'No pude recuperar la consulta.', true); return; }
+    mostrarVistaHistorial(false);window.scrollTo(0,0);
     planActual = d.plan; $('texto').value = d.texto; 
     mostrarPlan(planActual); reiniciarContextoChat();
     await verDatos();
@@ -1995,7 +2012,7 @@ async function enviarChat(e) {
 
 
 function vaciar(el) { while (el.firstChild) el.removeChild(el.firstChild); }
-function estado(texto, esError) { const e = $('estado'); e.textContent = texto || ''; e.className = esError ? 'error' : ''; }
+function estado(texto, esError) { const e = !$('panelHistorial').hidden ? $('estadoHistorial') : $('estado'); e.textContent = texto || ''; e.className = esError ? 'error' : ''; }
 async function post(url, cuerpo) {
   const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken }, body: JSON.stringify(cuerpo) });
   if (r.status === 401) {
@@ -2404,7 +2421,7 @@ $('cerrarCuenta').onclick = () => { $('cuentaClave').value = ''; $('dialogoCuent
 $('formCuenta').onsubmit = enviarCuenta;
 $('salirCuenta').onclick = () => { cerrarMenuCuenta(); salirCuenta(); };
 $('abrirHistorial').onclick = () => { cerrarMenuCuenta(); cargarHistorial(); };
-$('cerrarHistorial').onclick = () => { $('panelHistorial').hidden = true; };
+$('cerrarHistorial').onclick = () => { mostrarVistaHistorial(false); };
 $('abrirChat').onclick = abrirChat;
 $('cerrarChat').onclick = () => { $('panelChat').hidden = true; $('abrirChat').setAttribute('aria-expanded','false'); $('abrirChat').focus(); };
 $('formChat').onsubmit = enviarChat;

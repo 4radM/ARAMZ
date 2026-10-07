@@ -1258,8 +1258,6 @@ PAGINA = r"""<!doctype html>
 <textarea id="texto" rows="3" maxlength="500"
   placeholder="Ej.: gastos por consumo de las manufacturas en Monterrey en 2018"></textarea>
 <div class="ejemplos">Ejemplos:
-  <a data-ej="Dame los municipios de Chihuahua con más unidades económicas manufactureras en 2023">Municipios · manufacturas · UE</a>
-  <a data-ej="Cuál es el estado más productivo en 2023">Productividad por estado</a>
   <a data-ej="Dame del año censal 2008, de Nuevo León, de todos los sectores, variables K000A e I000A">2008 · Nuevo León · K000A e I000A</a>
   <a data-ej="variables relacionadas con el PIB de Chihuahua en 2023">PIB · Chihuahua · 2023</a>
   <a data-ej="gastos por consumo de las manufacturas en Monterrey en 2018">Manufacturas · Monterrey · 2018</a>

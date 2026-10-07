@@ -1,5 +1,5 @@
 """
-app8c.py - Página web para consultar el SAIC (INEGI) en lenguaje natural (versión para pruebas con testers).
+aramz
 
 Requiere, en la MISMA carpeta: saic_motor3.py, saic_interprete7.py y catalogos/
 Instalación (una sola vez):   pip3 install flask

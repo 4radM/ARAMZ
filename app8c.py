@@ -584,13 +584,41 @@ EXPLICACIONES_SAIC = {
 }
 
 
+def rankings_contexto(plan, tabla):
+    columnas = tabla['columns']
+    dimensiones = [i for i, c in enumerate(columnas) if texto_normal(str(c)) in
+                   ('actividad', 'sector', 'actividad economica', 'entidad', 'estado', 'municipio', 'muni', 'ano', 'anio', 'ano censal', 'estrato')]
+    actividad = next((i for i, c in enumerate(columnas) if texto_normal(str(c)) in ('actividad', 'sector', 'actividad economica')), None)
+    duplicadas = actividad is not None and len({str(f[actividad]) for f in tabla['data']}) != len(tabla['data'])
+    claves = set(plan.get('variables') or [])
+    resultado = {}
+    for i, c in enumerate(columnas):
+        if re.split(r'[| ·:]', str(c).strip(), maxsplit=1)[0].upper() not in claves and not str(c).startswith('Productividad'):
+            continue
+        filas = []
+        for f in tabla['data']:
+            v = f[i]
+            if v is None or isinstance(v, bool):
+                continue
+            try:
+                valor = float(str(v).replace(',', '').strip())
+            except (ValueError, TypeError):
+                continue
+            if not -float('inf') < valor < float('inf'):
+                continue
+            etiqueta = ' · '.join(str(f[j])[:200] for j in dimensiones if f[j] is not None)
+            filas.append({'etiqueta': etiqueta or 'Resultado', 'valor': valor})
+        resultado[str(c)] = sorted(filas, key=lambda r: r['valor'], reverse=True)[:20]
+    return {'variables': resultado, 'actividad': actividad is not None, 'actividades_repetidas': duplicadas}
+
+
 def firmar_contexto(plan, tabla, respuesta):
     limpio = plan_guardable(plan)
     muestra = tabla['data'][:20]
     # Mantiene tamaño y contexto acotados; no incluye identidad de la cuenta.
     contexto = {'plan': limpio, 'columnas': tabla['columns'][:20],
                 'muestra': [[v[:200] if isinstance(v, str) else v for v in f[:20]] for f in muestra], 'filas_visibles': len(tabla['data']),
-                'respuesta': str(respuesta or '')[:2000]}
+                'respuesta': str(respuesta or '')[:2000], 'rankings': rankings_contexto(limpio, tabla)}
     return URLSafeTimedSerializer(app.secret_key, salt='aramz-contexto').dumps(contexto)
 
 
@@ -611,6 +639,28 @@ def leer_contexto_chat(cuerpo):
 def explicacion_directa(pregunta, contexto):
     q = texto_normal(pregunta)
     plan = contexto.get('plan') or {}
+    pedido_top = re.search(r'\btop\s*(5|10|20)\b', q)
+    definicion = bool(re.search(r'que (?:es|significa)|que significan|explica', q))
+    if pedido_top and not definicion:
+        ranking = contexto.get('rankings')
+        if not ranking:
+            return 'Pulsa Ver datos otra vez para que pueda preparar el top con tu consulta actual.'
+        if re.search(r'\b(?:actividades|sectores)\b', q):
+            if not ranking['actividad']:
+                return 'Tu consulta no tiene actividades desglosadas. Consulta todos los sectores del lugar y año que te interesan y pulsa Ver datos.'
+            if ranking['actividades_repetidas']:
+                return 'Hay varias filas por actividad. Consulta un solo lugar, año y estrato para comparar las actividades sin mezclar sus datos.'
+        variables = ranking['variables']
+        elegida = (contexto.get('vista_grafica') or {}).get('variable')
+        if elegida not in variables:
+            elegida = next((c for c in variables if c.startswith('Productividad')), None) if plan.get('analisis') == 'productividad' else None
+        if not elegida:
+            elegida = next(iter(variables), None)
+        if not elegida or not variables[elegida]:
+            return 'No hay valores disponibles para elaborar ese top.'
+        n = int(pedido_top.group(1))
+        lista = '\n'.join(f'{i}. {r["etiqueta"]}: {r["valor"]:,.6g}' for i, r in enumerate(variables[elegida][:n], 1))
+        return f'Aquí tienes el top {n} de la tabla visible, según {elegida.replace("|", " · ")}:\n{lista}'
     if re.fullmatch(r'[¿¡!?. ]*(?:hola|buenas|quien eres|como te llamas)[¿¡!?. ]*', q):
         return 'Soy Ari, tu guía para entender los datos de ARAMZ. Vamos paso a paso: ¿qué te gustaría aclarar de tu consulta?'
     if re.search(r'\b(?:fuente|de donde|origen|inegi)\b', q):

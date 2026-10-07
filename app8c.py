@@ -702,6 +702,7 @@ def interpretar_ampliado(texto, previo=None, opciones=None):
     analisis = None
     productividad = seleccion == 'productividad' or (seleccion == 'auto' and bool(re.search(r'\b(?:mas productiv[oa]|productividad)\b', t)))
     produccion = seleccion == 'produccion' or (seleccion == 'auto' and bool(re.search(r'\b(?:produccion total|mayor produccion|mas produccion)\b', t)))
+    por_sector = bool(re.search(r'\bsector(?:es)?\b', t)) and (productividad or produccion)
     if produccion:
         productividad = False
     ranking = bool(top) or bool(re.search(r'\b(?:con mas|mayor(?:es)?|ranking|mas unidades)\b', t))
@@ -718,8 +719,13 @@ def interpretar_ampliado(texto, previo=None, opciones=None):
                 raise ValueError('La consulta contiene una variable desconocida.')
     else:
         if productividad or produccion:
-            limpio = re.sub(r'\b(?:cual es|cual|el estado|los estados|mas productiv[oa]|productividad|produccion total|mayor produccion|mas produccion)\b', ' ', limpio)
-            limpio += (' todos los estados A111A solo el total' if produccion else ' todos los estados A131A H001A solo el total')
+            limpio = re.sub(r'\b(?:cual es|cual|el estado|los estados|el sector|los sectores|sector|sectores|mas productiv[oa]|productividad|produccion total|mayor produccion|mas produccion)\b', ' ', limpio)
+            # El ámbito pedido debe conservarse: sector de Chihuahua no significa todos los estados.
+            tiene_lugar = any(re.search(r'(?<!\w)' + re.escape(nombre) + r'(?!\w)', texto_normal(limpio)) for nombre in CAT._estados)
+            if not por_sector and not tiene_lugar and re.search(r'\bestados?\b', t):
+                limpio += ' todos los estados'
+            limpio += (' A111A' if produccion else ' A131A H001A')
+            limpio += (' todos los sectores' if por_sector else ' solo el total')
             analisis = 'produccion' if produccion else 'productividad'
         elif ranking:
             limpio = re.sub(r'\b(?:con mas|mayor(?:es)?|ranking|mas unidades)\b', ' ', limpio)
@@ -732,13 +738,13 @@ def interpretar_ampliado(texto, previo=None, opciones=None):
             plan['analisis'] = analisis
             if analisis == 'productividad':
                 plan['variables'] = ['A131A', 'H001A']
-                plan['actividades'] = []
-                plan['solo_total'], plan['con_total'] = True, False
-                plan['notas'].append('Productividad se medirá como valor agregado censal bruto (A131A) / personal ocupado total (H001A), en millones de pesos por persona ocupada. No es PIB ni producción total. Se comparan los estados con datos disponibles en el SAIC.')
+                plan['actividades'] = list(CAT.sectores) if por_sector else []
+                plan['solo_total'], plan['con_total'] = not por_sector, False
+                plan['notas'].append('Productividad se medirá como valor agregado censal bruto (A131A) / personal ocupado total (H001A), en millones de pesos por persona ocupada. No es PIB ni producción total. Se comparan los sectores del lugar solicitado con datos disponibles en el SAIC.' if por_sector else 'Productividad se medirá como valor agregado censal bruto (A131A) / personal ocupado total (H001A), en millones de pesos por persona ocupada. No es PIB ni producción total. Se comparan los lugares solicitados con datos disponibles en el SAIC.')
             elif analisis == 'produccion':
                 plan['variables'] = ['A111A']
-                plan['actividades'] = []
-                plan['solo_total'], plan['con_total'] = True, False
+                plan['actividades'] = list(CAT.sectores) if por_sector else []
+                plan['solo_total'], plan['con_total'] = not por_sector, False
                 plan['notas'].append('Se comparará la producción bruta total (A111A), en millones de pesos. Esta medida representa volumen de producción, no productividad por trabajador ni PIB.')
             else:
                 plan['notas'].append('Se ordenarán los resultados de mayor a menor según la primera variable solicitada. Los datos reservados no se tratarán como ceros.')
@@ -792,11 +798,12 @@ def analizar_resultados(df, plan):
     respuesta = 'No hay valores numéricos disponibles para elaborar la clasificación.'
     if not disponibles.empty:
         primera = disponibles.iloc[0]
-        dims = [c for c in df.columns if texto_normal(str(c)) in ('entidad', 'estado', 'municipio', 'muni', 'ano', 'anio', 'ano censal')]
+        dims = [c for c in df.columns if texto_normal(str(c)) in ('entidad', 'estado', 'municipio', 'muni', 'actividad', 'sector', 'actividad economica', 'ano', 'anio', 'ano censal')]
         # Un resultado por estado y año es necesario para afirmar quién lidera.
         estado = next((c for c in df.columns if texto_normal(str(c)) in ('entidad', 'estado')), None)
         ano = next((c for c in df.columns if texto_normal(str(c)) in ('ano', 'anio', 'ano censal')), None)
-        comparable = modo == 'ranking' or (estado is not None and not resultado.duplicated([estado] + ([ano] if ano else [])).any() and (ano is None or resultado[ano].nunique() == 1))
+        sector = next((c for c in df.columns if texto_normal(str(c)) in ('actividad', 'sector', 'actividad economica')), None)
+        comparable = (sector is not None and ano is not None and resultado[ano].nunique() == 1 and estado is not None and resultado[estado].nunique() == 1 and not resultado.duplicated([estado, sector, ano]).any()) or modo == 'ranking' or (estado is not None and not resultado.duplicated([estado] + ([ano] if ano else [])).any() and (ano is None or resultado[ano].nunique() == 1))
         etiqueta = ' · '.join(str(primera[c]) for c in dims if pd.notna(primera[c]))
         if comparable:
             empatados = disponibles[disponibles['_puntaje_aramz'] == primera['_puntaje_aramz']]
@@ -805,7 +812,7 @@ def analizar_resultados(df, plan):
             else:
                 respuesta = f'El mayor valor disponible corresponde a {etiqueta}: {primera["_puntaje_aramz"]:,.6g} ({metrica}).'
         else:
-            respuesta = 'Los resultados están ordenados, pero esta combinación incluye varios años o filas por estado. Elige un solo año y el total estatal para identificar al estado más productivo.'
+            respuesta = 'Los resultados están ordenados, pero combinan varios ámbitos o años. Para identificar un líder, consulta un solo año y sectores de un lugar, o totales de varios lugares.'
         omitidos = len(resultado) - len(disponibles)
         if omitidos:
             respuesta += f' Hay {omitidos} filas sin valor comparable; no se consideran ceros.'
@@ -1554,18 +1561,6 @@ function mostrarPlan(d) {
   mensajes(caja, '', d.avisos, 'aviso');
   aclaraciones(caja, d);
   mensajes(caja, 'Falta: ', d.faltantes, 'error');
-  const opcionesVista = document.createElement('div'); opcionesVista.className = 'controles';
-  const top = crearSelect(opcionesVista, 'Mostrar', [['0', 'Todos'], ['5', 'Top 5'], ['10', 'Top 10'], ['20', 'Top 20']], String(d.top || 0));
-  top.onchange = () => { planActual.top = Number(top.value); };
-  const etiquetaPct = document.createElement('label');
-  const pct = document.createElement('input'); pct.type = 'checkbox'; pct.checked = !!d.porcentajes;
-  pct.disabled = d.analisis === 'productividad';
-  pct.onchange = () => { planActual.porcentajes = pct.checked; };
-  etiquetaPct.appendChild(pct); etiquetaPct.appendChild(document.createTextNode(' Mostrar participaciones porcentuales'));
-  opcionesVista.appendChild(etiquetaPct); caja.appendChild(opcionesVista);
-  const ayuda = document.createElement('p'); ayuda.className = 'fuente';
-  ayuda.textContent = 'Aplica estas opciones al pulsar Ver datos. Los porcentajes usan todos los valores disponibles consultados por año; las descargas conservan la consulta completa.';
-  caja.appendChild(ayuda);
   const acc = document.createElement('div'); acc.className = 'acciones';
   const b1 = document.createElement('button'); b1.textContent = 'Ver datos'; b1.disabled = !d.listo; b1.onclick = verDatos;
   const b2 = document.createElement('button'); b2.textContent = 'Descargar Excel oficial'; b2.className = 'sec';

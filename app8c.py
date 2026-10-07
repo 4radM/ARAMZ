@@ -971,7 +971,7 @@ def texto_normal(texto):
 
 def interpretar_ampliado(texto, previo=None, opciones=None):
     """Amplía las reglas sin modificar saic_interprete7.py."""
-    t = texto_normal(texto)
+    t = re.sub(r'\s+', ' ', texto_normal(texto))
     opciones = opciones if isinstance(opciones, dict) else {}
     seleccion = opciones.get('metrica', 'auto')
     if seleccion not in ('auto', 'produccion', 'productividad', 'produccion_por_persona'):
@@ -997,7 +997,7 @@ def interpretar_ampliado(texto, previo=None, opciones=None):
     por_sector = bool(re.search(r'\bsector(?:es)?\b', t)) and (productividad or produccion)
     if produccion:
         productividad = False
-    ranking = bool(top) or bool(re.search(r'\b(?:con mas|mayor(?:es)?|ranking|mas unidades)\b', t))
+    ranking = bool(top) or bool(re.search(r'\b(?:con mas|(?<!por )mayor(?:es)?|ranking|mas unidades)\b', t))
     if solo_comando:
         if not isinstance(previo, dict):
             raise ValueError('Primero interpreta una consulta; después puedes pedir marca UE o desmarca UE.')
@@ -1022,7 +1022,7 @@ def interpretar_ampliado(texto, previo=None, opciones=None):
             limpio += (' todos los sectores' if por_sector else '')
             analisis = 'produccion_por_persona' if por_persona else ('produccion' if produccion else 'productividad')
         elif ranking:
-            limpio = re.sub(r'\b(?:con mas|mayor(?:es)?|ranking|mas unidades)\b', ' ', limpio)
+            limpio = re.sub(r'\b(?:con mas|(?<!por )mayor(?:es)?|ranking|mas unidades)\b', ' ', limpio)
             # "los municipios de Chihuahua" debe expandir todo el estado.
             limpio = re.sub(r'\b(?:los )?municipios de\b', 'todos los municipios de', limpio)
             limpio = re.sub(r'\bmanufactureras?\b', 'manufacturas', limpio)
@@ -1346,7 +1346,7 @@ def api_interpretar():
 # Cola y caché compartidas por los hilos de un único proceso Gunicorn.
 from concurrent.futures import ThreadPoolExecutor
 from collections import OrderedDict
-SAIC_SIMULTANEAS = 4
+SAIC_SIMULTANEAS = 8
 SAIC_ESPERA = 60
 CACHE_SEGUNDOS = 600
 CACHE_MAX_BYTES = 8 * 1024 * 1024
@@ -2183,8 +2183,8 @@ async function enviarChat(e) {
 
 function vaciar(el) { while (el.firstChild) el.removeChild(el.firstChild); }
 function estado(texto, esError) { const e = !$('panelHistorial').hidden ? $('estadoHistorial') : $('estado'); e.textContent = texto || ''; e.className = esError ? 'error' : ''; }
-async function post(url, cuerpo) {
-  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken }, body: JSON.stringify(cuerpo) });
+async function post(url, cuerpo, signal) {
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken }, body: JSON.stringify(cuerpo), signal });
   if (r.status === 401) {
     const d = await r.clone().json().catch(() => ({}));
     if (d.acceso) mostrarAcceso();
@@ -2306,10 +2306,10 @@ function formato(v) {
   return typeof v === 'number' ? v.toLocaleString('es-MX') : String(v);
 }
 
-let trabajoConsulta=null;
+async function seguirConsulta(trabajo, inicioEspera) { const limite = inicioEspera + 300000; for (let intento = 0; intento < 6; intento++) { const restante = limite - Date.now(); if (restante <= 0) throw new Error('La consulta está tardando demasiado. Espera un momento antes de reintentar.'); const control = new AbortController(); const temporizador = setTimeout(() => control.abort(), Math.min(20000, restante)); try { const r = await post('/api/consultas/' + encodeURIComponent(trabajo) + '/resultado', {}, control.signal); const d = await r.json().catch(() => null); if (r.status === 401 || r.status === 403) return {r, d: d || {error: 'La sesión de la página venció. Recárgala e intenta de nuevo.'}}; if (d && typeof d.error === 'string') return {r, d}; if (d && d.ok === true && ((r.status === 202 && d.pendiente === true) || (r.status === 200 && (Array.isArray(d.filas) && Array.isArray(d.columnas) || d.vacio || d.demasiado_grande)))) return {r, d}; if (!r.ok && ![408, 429, 500, 502, 503, 504].includes(r.status)) return {r, d: {error: 'No pude recuperar la consulta. Vuelve a pulsar Ver datos.'}}; } catch (e) { } finally { clearTimeout(temporizador); } if (intento === 5 || Date.now() >= limite) break; estado('Se interrumpió la conexión. Estoy recuperando tu consulta; no necesitas volver a pulsar Ver datos.'); await new Promise(resolve => setTimeout(resolve, Math.min(1500 * (intento + 1), 6000, Math.max(0, limite - Date.now())))); } throw new Error('No pude recuperar el resultado tras varios intentos. Espera un momento y vuelve a pulsar Ver datos.'); } let trabajoConsulta=null;
 async function verDatos() {
   if (!planActual || consultaEnCurso) return;
-  consultaEnCurso = true; reiniciarContextoChat(); limpiarResultados();
+  consultaEnCurso = true; trabajoConsulta = null; reiniciarContextoChat(); limpiarResultados();
   const planEnviado = JSON.parse(JSON.stringify(planActual));
   const controlesPlan = [...$('plan').querySelectorAll('button,input,select')];
   controlesPlan.forEach(c => { c.disabled = true; });
@@ -2324,7 +2324,7 @@ async function verDatos() {
       estado(d.estado==='espera' ? 'Tu consulta está en espera. Comenzará automáticamente cuando haya espacio; no necesitas volver a pulsar Ver datos.' : 'Consultando datos del INEGI…');
       if(Date.now()-inicioEspera>300000) { estado('La consulta está tardando demasiado. Espera un momento antes de reintentar.',true);return; }
       await new Promise(resolve=>setTimeout(resolve,1500));
-      r=await post('/api/consultas/'+encodeURIComponent(trabajo)+'/resultado',{});d=await r.json();
+      ({r, d} = await seguirConsulta(trabajo, inicioEspera));
     }
     trabajoConsulta=null;
     if (!r.ok) { estado(d.error || 'Ocurrió un error.', true); return; }
@@ -2335,7 +2335,7 @@ async function verDatos() {
     if (cuentaUsuario && !$('panelHistorial').hidden) await cargarHistorial();
   } catch (e) { estado('No pude conectar con el servidor.', true); }
   finally {
-    consultaEnCurso = false; $('btnInterpretar').disabled = false;
+    trabajoConsulta = null; consultaEnCurso = false; $('btnInterpretar').disabled = false;
     controlesPlan.forEach(c => { c.disabled = false; });
     // Restablece el estado de las opciones que no corresponden a productividad.
     if (planActual && planActual.analisis === 'productividad') {

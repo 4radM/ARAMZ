@@ -1011,7 +1011,7 @@ def interpretar_ampliado(texto, previo=None, opciones=None):
                 raise ValueError('La consulta contiene una variable desconocida.')
     else:
         if productividad or produccion:
-            limpio = re.sub(r'\b(?:cual es|cuales|cual|es|son|fue|fueron|tiene|tienen|el estado|los estados|estados?|el sector|los sectores|sector|sectores|economico|economicos|que|mas productiv[oa]s?|mayor productividad|mas productividad|productividad|produccion total|mayor produccion|mas produccion|produjo mas|produjeron mas|produce mas|por trabajador|por persona|respecto al personal ocupado|respecto a personal ocupado|respecto personal ocupado)\b', ' ', limpio)
+            limpio = re.sub(r'\b(?:cual es|cuales|cual|es|son|era|eran|fue|fueron|tiene|tienen|el estado|los estados|estados?|el sector|los sectores|sector|sectores|economico|economicos|que|mas productiv[oa]s?|mayor productividad|mas productividad|productividad|produccion total|mayor produccion|mas produccion|produjo mas|produjeron mas|produce mas|por trabajador|por persona|respecto al personal ocupado|respecto a personal ocupado|respecto personal ocupado)\b', ' ', limpio)
             # El ámbito pedido debe conservarse: sector de Chihuahua no significa todos los estados.
             tiene_lugar = any(re.search(r'(?<!\w)' + re.escape(nombre) + r'(?!\w)', texto_normal(limpio)) for nombre in CAT._estados)
             if not por_sector and not tiene_lugar and re.search(r'\bestados?\b', t):
@@ -1108,7 +1108,7 @@ def analizar_resultados(df, plan):
             if len(empatados) > 1:
                 respuesta = f'Hay {len(empatados)} resultados empatados en el primer lugar, con {primera["_puntaje_aramz"]:,.6g}. Revisa las primeras filas de la tabla.'
             else:
-                respuesta = f'El mayor valor disponible corresponde a {etiqueta}: {primera["_puntaje_aramz"]:,.6g} ({metrica}).'
+                respuesta = (f'El sector con mayor {"producción total" if modo == "produccion" else "producción por persona ocupada" if modo == "produccion_por_persona" else "valor agregado por persona ocupada"} en {primera[estado]}, en {primera[ano]}, es {primera[sector]}: {primera["_puntaje_aramz"]:,.6g} {"millones de pesos" if modo == "produccion" else "millones de pesos por persona ocupada"}.' if modo in ('produccion', 'productividad', 'produccion_por_persona') and sector is not None and estado is not None and ano is not None and resultado[estado].nunique() == 1 and resultado[ano].nunique() == 1 else f'El mayor valor disponible corresponde a {etiqueta}: {primera["_puntaje_aramz"]:,.6g} ({metrica}).')
         else:
             respuesta = 'Los resultados están ordenados, pero combinan varios ámbitos o años. Para identificar un líder, consulta un solo año y sectores de un lugar, o totales de varios lugares.'
         omitidos = len(resultado) - len(disponibles)
@@ -2296,7 +2296,7 @@ async function interpretar() {
   try {
     const r = await post('/api/interpretar', { texto, plan: planActual, opciones: { metrica: 'auto' } }); const d = await r.json();
     if (!r.ok) { estado(d.error || 'Ocurrió un error.', true); return; }
-    planActual = d; mostrarPlan(d); estado('');
+    planActual = d; mostrarPlan(d); estado(''); if (d.listo && ['produccion','productividad','produccion_por_persona'].includes(d.analisis)) await verDatos();
   } catch (e) { estado('No pude conectar con el servidor.', true); }
   finally { $('btnInterpretar').disabled = false; }
 }

@@ -618,11 +618,11 @@ def explicacion_directa(pregunta, contexto):
     if re.search(r'\b(?:reservad|confidencial|dato omitido|celdas vacias|vacios|guion)', q):
         return 'El símbolo — señala un valor que no está disponible en la respuesta. Puede tratarse de confidencialidad o reserva; no debe interpretarse como cero. Los porcentajes y rankings no convierten estos valores en ceros.'
     if re.search(r'\b(?:porcentaj|participacion)', q):
-        return 'La participación es 100 × valor / suma de los valores disponibles de la consulta del mismo año. El denominador se calcula antes de recortar al top. No es necesariamente el total de todo el estado o del país y no se calcula para productividad, porque es un cociente por trabajador.'
+        return 'Un porcentaje indica qué parte del total representa un resultado. Por ejemplo, si de 100 negocios consultados 25 son manufactureros, representan el 25 %. El total depende de los datos que consultaste.'
     if 'productividad' in q or 'productivo' in q:
         return 'Aquí la productividad por trabajador es A131A (valor agregado censal bruto) dividido entre H001A (personal ocupado total), en millones de pesos por persona ocupada. Un lugar puede producir más en total y tener menor productividad por trabajador. Es una comparación de las actividades cubiertas por el SAIC, no de toda la economía.'
-    if re.search(r'\b(?:top|ranking|ordenad|clasificacion)', q):
-        return 'El ranking ordena los valores numéricos disponibles de mayor a menor. Top 5, 10 o 20 limita las filas mostradas por año; las descargas conservan la consulta completa. Una fila con dato reservado no demuestra que el lugar tenga menos actividad.'
+    if re.search(r'\b(?:top|ranking|ordenad|clasificacion)', q) and re.search(r'que (?:es|significa)|que significan|explica', q):
+        return 'Un top 5 muestra los cinco resultados con el valor más alto de la variable que estás comparando.'
     if re.search(r'\b(?:reciente|actualiz|ultimo ano)', q):
         return 'Actualizar y usar conserva los filtros y cambia el año al más reciente de los catálogos del sitio; después vuelve a consultar el SAIC. Los Censos Económicos no se actualizan como una serie diaria. La consulta original sigue guardada.'
     for clave, explicacion in EXPLICACIONES_SAIC.items():
@@ -1327,6 +1327,7 @@ let cuentaUsuario = null;
 let modoCuenta = 'entrar';
 let csrfToken = '';
 let contextoChat = null;
+let datosChat = null;
 let vistaGrafica = null;
 let charla = [];
 let consultaEnCurso = false;
@@ -1432,7 +1433,7 @@ async function usarHistorial(id, actualizar, acciones) {
   finally { recuperandoHistorial = false; botones.forEach(b => { b.disabled = false; }); }
 }
 function reiniciarContextoChat() {
-  contextoChat = null; vistaGrafica = null; charla = [];
+  contextoChat = null; datosChat = null; vistaGrafica = null; charla = [];
   vaciar($('mensajesChat')); $('estadoChat').textContent = '';
 }
 function mensajeChat(rol, texto) {
@@ -1445,8 +1446,29 @@ function abrirChat() {
   if (!$('mensajesChat').firstChild) mensajeChat('assistant','Soy Ari, tu guía para entender los datos. Vamos paso a paso: ¿qué te gustaría aclarar?');
   $('preguntaChat').focus();
 }
+function pedidoTopAri(pregunta) {
+  const q = pregunta.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const m = q.match(/\btop\s*(5|10|20)\b/);
+  if (!m || /que (?:es|significa)|que significan|explica/.test(q)) return null;
+  if (!datosChat || !datosChat.filas.length) return 'Primero pulsa Ver datos para que pueda ordenar los resultados de tu consulta.';
+  const cols = datosChat.columnas;
+  const dimension = cols.findIndex(c => /actividad|sector/i.test(c));
+  if (/actividades|sectores/.test(q) && dimension < 0) return 'Tu tabla no tiene actividades desglosadas. Consulta todos los sectores del lugar y año que te interesan y pulsa Ver datos.';
+  const variable = vistaGrafica && vistaGrafica.variable;
+  let iv = variable ? cols.findIndex(c => c === variable || c.replace('|', ' · ') === variable) : -1;
+  if (iv < 0 && planActual && planActual.analisis === 'productividad') iv = cols.findIndex(c => /^Productividad/.test(c));
+  if (iv < 0) iv = cols.findIndex(c => planActual && planActual.variables.some(v => c.split(/[| ·:]/)[0] === v));
+  if (iv < 0) return 'No encuentro una columna numérica para ordenar. Dime qué variable quieres comparar.';
+  const filas = datosChat.filas.map(f => ({f, valor:numeroSAIC(f[iv])})).filter(r => r.valor !== null).sort((a,b) => b.valor-a.valor);
+  if (!filas.length) return 'No hay valores disponibles para elaborar ese top.';
+  if (dimension >= 0 && /actividades|sectores/.test(q) && new Set(filas.map(r => String(r.f[dimension]))).size !== filas.length) return 'Hay varias filas por actividad, de distintos lugares, años o estratos. Consulta un solo lugar, año y estrato para comparar actividades sin mezclar sus datos.';
+  const ids = cols.map((c,i) => /actividad|sector|entidad|estado|municipio|año|anio/i.test(c) ? i : -1).filter(i => i >= 0);
+  return 'Aquí tienes el top ' + m[1] + ' de los datos de la tabla visible, según ' + cols[iv].replace('|',' · ') + ':\n' + filas.slice(0,Number(m[1])).map((r,i) => (i+1) + '. ' + ids.map(j => r.f[j]).join(' · ') + ': ' + numTxt(r.valor)).join('\n');
+}
 async function enviarChat(e) {
   e.preventDefault(); const pregunta = $('preguntaChat').value.trim(); if (!pregunta) return;
+  const topLocal = pedidoTopAri(pregunta);
+  if (topLocal !== null) { mensajeChat('user', pregunta); mensajeChat('assistant', topLocal); $('preguntaChat').value = ''; return; }
   $('enviarChat').disabled = true; $('estadoChat').textContent = 'Preparando una explicación…';
   mensajeChat('user', pregunta); $('preguntaChat').value = '';
   const contextoSolicitado = contextoChat;
@@ -1601,7 +1623,7 @@ async function verDatos() {
     if (!r.ok) { estado(d.error || 'Ocurrió un error.', true); return; }
     if (d.demasiado_grande) { estado('La consulta tiene ' + d.filas + ' filas: es muy grande para mostrarla aquí, pero puedes descargar el Excel oficial.'); return; }
     if (d.vacio) { estado('El SAIC no devolvió datos para esta combinación.'); return; }
-    contextoChat = d.contexto || null;
+    contextoChat = d.contexto || null; datosChat = d;
     if (d.guardada || d.aviso_historial) { const aviso = document.createElement('p'); aviso.className = 'fuente'; aviso.textContent = d.aviso_historial || 'Consulta guardada en Mis consultas.'; $('tabla').appendChild(aviso); }
     if (d.respuesta) { const resumen = document.createElement('p'); resumen.className = 'msg nota'; resumen.textContent = d.respuesta; $('tabla').appendChild(resumen); }
     const cont = document.createElement('div'); cont.className = 'contenedor-tabla';

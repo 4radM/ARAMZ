@@ -682,10 +682,37 @@ def explicacion_directa(pregunta, contexto):
     if re.search(r'\b(?:que (?:es|estoy viendo|significa)|explica|entiendo|onda)\b', q):
         if not plan:
             return 'Vamos paso a paso: interpreta una consulta y pulsa Ver datos. Después te ayudo a entender sus variables, unidades, filtros y resultados.'
-        variables = ', '.join(v + ' (' + CAT.variables[v]['nombre'] + ')' for v in plan['variables'])
-        mensaje = 'Estás consultando ' + variables + ' para ' + ', '.join(map(str, plan['anios'])) + '. Los filtros seleccionan lugares, actividades económicas y estratos. La tabla contiene los valores recibidos del SAIC y las barras representan la variable elegida en la gráfica.'
-        if contexto.get('respuesta'):
-            mensaje += ' Resumen de la consulta: ' + contexto['respuesta']
+        nombres = [CAT.nombre_lugar(c) for c in plan.get('lugares', [])]
+        lugares = ', '.join(nombres[:4]) + (f' y {len(nombres)-4} lugares más' if len(nombres) > 4 else '')
+        anios = ', '.join(map(str, plan.get('anios', [])))
+        mensaje = f'Estás viendo datos de {lugares or "los lugares seleccionados"} correspondientes a {anios or "los años seleccionados"}.'
+        sencillas = {
+            'K000A': 'Gastos en bienes y servicios que los negocios consumieron para funcionar. Están expresados en millones de pesos: 1 equivale a un millón de pesos.',
+            'I000A': 'Personas que trabajaron para los negocios, pero dependían de otra empresa o trabajaban por cuenta propia. Es un conteo de personas, no una cantidad de dinero.',
+            'UE': 'Cantidad de unidades económicas, como establecimientos o negocios.',
+            'H001A': 'Total de personas ocupadas en los negocios consultados.',
+            'A111A': 'Valor de la producción de los negocios, en millones de pesos.',
+            'A131A': 'Valor que los negocios añadieron mediante su actividad, en millones de pesos.'
+        }
+        for v in plan.get('variables', []):
+            dato = CAT.variables.get(v, {})
+            mensaje += '\n• ' + sencillas.get(v, dato.get('nombre', v))
+        if plan.get('solo_total'):
+            mensaje += '\nLa consulta muestra el total de las actividades, sin separar los sectores.'
+        elif not plan.get('actividades') or set(plan.get('actividades', [])) == set(CAT.sectores):
+            mensaje += '\nLa tabla separa los resultados por sector económico.'
+        else:
+            actividades = [CAT.actividades[c]['nombre'] for c in plan.get('actividades', []) if c in CAT.actividades]
+            mensaje += '\nActividades consultadas: ' + ', '.join(actividades[:4]) + ('.' if len(actividades) <= 4 else f' y {len(actividades)-4} más.')
+        vista = contexto.get('vista_grafica') or {}
+        if vista.get('variable'):
+            mensaje += '\nLa gráfica muestra ' + str(vista['variable']).replace('|', ' · ') + '.'
+            if vista.get('eje'):
+                mensaje += ' Compara los resultados por ' + str(vista['eje']).lower() + '.'
+        elif not contexto.get('filas_visibles'):
+            mensaje += '\nPulsa Ver datos para cargar la tabla y la gráfica de esta consulta.'
+        if 'K000A' in plan.get('variables', []) and 'I000A' in plan.get('variables', []):
+            mensaje += '\nEstás consultando dinero y personas: son medidas distintas y se muestran por separado en la gráfica.'
         return mensaje
     return None
 

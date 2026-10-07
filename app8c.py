@@ -1191,7 +1191,14 @@ PAGINA = r"""<!doctype html>
   .fila { display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:.5rem 0; }
   .controles { display:flex; gap:.8rem; flex-wrap:wrap; align-items:center; margin:.6rem 0; }
   [hidden] { display:none !important; }
-  .barra-cuenta { padding:.8rem 0 1.2rem; border-bottom:1px solid var(--borde); margin-bottom:1rem; font-size:.95rem; }
+  .marca { position:relative; }
+  .menu-cuenta { margin-left:auto; position:relative; font-size:.95rem; letter-spacing:normal; }
+  .boton-menu { display:flex; flex-direction:column; justify-content:center; gap:5px; width:44px; height:44px; padding:10px; background:transparent; border:1px solid var(--borde); border-radius:10px; }
+  .boton-menu span { display:block; width:22px; height:2px; background:#484f56; }
+  .barra-cuenta { position:absolute; right:0; top:calc(100% + 10px); z-index:50; width:min(290px,calc(100vw - 3rem)); box-sizing:border-box; padding:1rem; background:#fff; color:#1f2933; border:1px solid var(--borde); border-radius:12px; box-shadow:0 8px 28px #0002; }
+  .barra-cuenta .acciones { flex-direction:column; }
+  .barra-cuenta button { width:100%; text-align:left; }
+  #nombreCuenta { display:block; font-size:.85rem; line-height:1.5; }
   h2 { font-size:1.15rem; margin:.4rem 0; }
   dialog { border:1px solid var(--borde); border-radius:14px; width:min(90vw,420px); padding:1.3rem; color:#1f2933; }
   dialog::backdrop { background:rgba(15,23,42,.45); }
@@ -1217,6 +1224,18 @@ PAGINA = r"""<!doctype html>
     <path d="M7 21L16 12L25 17L34 5" fill="none" stroke="#484f56" stroke-width="2"/>
     <g fill="#484f56"><circle cx="7" cy="21" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="25" cy="17" r="2"/><circle cx="34" cy="5" r="2"/></g>
   </svg><span>ARAMZ</span>
+  <div id="menuCuenta" class="menu-cuenta" hidden>
+    <button id="abrirMenuCuenta" class="boton-menu" type="button" aria-label="Abrir menú de cuentas" aria-controls="barraCuenta" aria-expanded="false"><span></span><span></span><span></span></button>
+    <div id="barraCuenta" class="barra-cuenta" hidden>
+  <span id="nombreCuenta">Puedes consultar sin cuenta. Inicia sesión para guardar tus consultas.</span>
+  <div class="acciones">
+    <button id="abrirLogin" class="sec" type="button" disabled>Iniciar sesión</button>
+    <button id="abrirRegistro" type="button" disabled>Crear cuenta</button>
+    <button id="abrirHistorial" class="sec" type="button" hidden>Mis consultas</button>
+    <button id="salirCuenta" class="sec" type="button" hidden>Cerrar sesión</button>
+  </div>
+</div>
+  </div>
 </header>
 <h1>Consulta SAIC en lenguaje natural</h1>
 <p class="sub">Pide datos de los Censos Económicos (SAIC del INEGI) con tus propias palabras.</p>
@@ -1230,15 +1249,6 @@ PAGINA = r"""<!doctype html>
 </div>
 
 <div id="principal" hidden>
-<div id="barraCuenta" class="barra-cuenta">
-  <span id="nombreCuenta">Puedes consultar sin cuenta. Inicia sesión para guardar tus consultas.</span>
-  <div class="acciones">
-    <button id="abrirLogin" class="sec" type="button" disabled>Iniciar sesión</button>
-    <button id="abrirRegistro" type="button" disabled>Crear cuenta</button>
-    <button id="abrirHistorial" class="sec" type="button" hidden>Mis consultas</button>
-    <button id="salirCuenta" class="sec" type="button" hidden>Cerrar sesión</button>
-  </div>
-</div>
 <section id="panelHistorial" class="tarjeta" hidden aria-label="Mis consultas guardadas">
   <div class="fila"><h2>Mis consultas</h2><button id="cerrarHistorial" class="sec" type="button">Cerrar</button></div>
   <p class="fuente">Se guardan automáticamente al consultar con tu sesión iniciada. “Actualizar y usar” consulta el año más reciente conocido por los catálogos del sitio.</p>
@@ -1256,13 +1266,6 @@ PAGINA = r"""<!doctype html>
   <a data-ej="compara el personal ocupado de Chihuahua y Sonora en 2018 y 2023">Comparar · Chihuahua y Sonora</a>
   <a data-ej="evolución del personal ocupado en Chihuahua entre 2003 y 2023">Evolución · Chihuahua 2003-2023</a>
 </div>
-<p class="sub">Puedes pedir “marca UE” o “desmarca UE” después de interpretar una consulta.</p>
-<div class="fila"><label for="metricaConsulta">Comparación de estados:</label>
-<select id="metricaConsulta">
-  <option value="auto">Según la pregunta</option>
-  <option value="produccion">Producción total</option>
-  <option value="productividad">Productividad por trabajador</option>
-</select></div>
 <button id="btnInterpretar">Interpretar</button>
 <div id="estado"></div>
 
@@ -1284,11 +1287,7 @@ PAGINA = r"""<!doctype html>
 </div>
 
 <footer>
-  Fuente: INEGI, Censos Económicos 2024 (SAIC). Este sitio es independiente: no está afiliado al INEGI ni cuenta con su respaldo oficial. La interpretación de las peticiones la hace este sitio y puede equivocarse; revisa el resumen antes de usar los datos.
-  Las celdas vacías (—) son datos que el INEGI omite por confidencialidad y reserva, no son ceros.
-  <br>Para mejorar el servicio se guarda lo que escribes (sin tu nombre ni datos personales).
-  <br>Si creas una cuenta, guardamos tu nombre, correo y filtros de consulta para ofrecerte el historial. Las preguntas abiertas del asistente pueden enviar la consulta visible a Claude; no se envían tu contraseña ni tu cuenta.
-  <a id="abrirReporte" hidden>Reportar un problema</a>
+  Fuente: INEGI, Censos Económicos (SAIC). Este sitio es independiente: no está afiliado al INEGI ni cuenta con su respaldo oficial. Las celdas vacías (—) son datos que el INEGI omite por confidencialidad y reserva, no son ceros. <a id="abrirReporte" hidden>Reportar un problema.</a>
 </footer>
 
 <dialog id="dialogoCuenta" aria-labelledby="tituloCuenta">
@@ -1331,6 +1330,7 @@ let consultaEnCurso = false;
 let recuperandoHistorial = false;
 
 async function cargarCuenta() {
+  $('menuCuenta').hidden = false;
   try {
     const r = await fetch('/api/cuenta'); const d = await r.json();
     if (d.csrf) csrfToken = d.csrf;
@@ -1422,7 +1422,7 @@ async function usarHistorial(id, actualizar, acciones) {
   try {
     const r = await post('/api/historial/' + id + '/usar', { actualizar }); const d = await r.json();
     if (!r.ok) { estado(d.error || 'No pude recuperar la consulta.', true); return; }
-    planActual = d.plan; $('texto').value = d.texto; $('metricaConsulta').value = 'auto';
+    planActual = d.plan; $('texto').value = d.texto; 
     mostrarPlan(planActual); reiniciarContextoChat();
     await verDatos();
   } catch (e) { estado('No pude recuperar esa consulta.', true); }
@@ -1585,7 +1585,7 @@ async function interpretar() {
   const texto = $('texto').value.trim(); if (!texto) return;
   $('btnInterpretar').disabled = true; vaciar($('tabla')); vaciar($('grafica')); $('plan').hidden = true; estado('Interpretando…');
   try {
-    const r = await post('/api/interpretar', { texto, plan: planActual, opciones: { metrica: $('metricaConsulta').value } }); const d = await r.json();
+    const r = await post('/api/interpretar', { texto, plan: planActual, opciones: { metrica: 'auto' } }); const d = await r.json();
     if (!r.ok) { estado(d.error || 'Ocurrió un error.', true); return; }
     planActual = d; mostrarPlan(d); estado('');
   } catch (e) { estado('No pude conectar con el servidor.', true); }
@@ -1880,12 +1880,25 @@ function mostrarGrafica(d) {
 }
 
 
-$('abrirLogin').onclick = () => abrirCuenta('entrar');
-$('abrirRegistro').onclick = () => abrirCuenta('registro');
+function cerrarMenuCuenta() {
+  $('barraCuenta').hidden = true;
+  $('abrirMenuCuenta').setAttribute('aria-expanded', 'false');
+}
+$('abrirMenuCuenta').onclick = () => {
+  const abierto = $('barraCuenta').hidden;
+  $('barraCuenta').hidden = !abierto;
+  $('abrirMenuCuenta').setAttribute('aria-expanded', String(abierto));
+};
+document.addEventListener('click', e => { if (!$('menuCuenta').contains(e.target)) cerrarMenuCuenta(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !$('barraCuenta').hidden) { cerrarMenuCuenta(); $('abrirMenuCuenta').focus(); }
+});
+$('abrirLogin').onclick = () => { cerrarMenuCuenta(); abrirCuenta('entrar'); };
+$('abrirRegistro').onclick = () => { cerrarMenuCuenta(); abrirCuenta('registro'); };
 $('cerrarCuenta').onclick = () => { $('cuentaClave').value = ''; $('dialogoCuenta').close(); };
 $('formCuenta').onsubmit = enviarCuenta;
-$('salirCuenta').onclick = salirCuenta;
-$('abrirHistorial').onclick = cargarHistorial;
+$('salirCuenta').onclick = () => { cerrarMenuCuenta(); salirCuenta(); };
+$('abrirHistorial').onclick = () => { cerrarMenuCuenta(); cargarHistorial(); };
 $('cerrarHistorial').onclick = () => { $('panelHistorial').hidden = true; };
 $('abrirChat').onclick = abrirChat;
 $('cerrarChat').onclick = () => { $('panelChat').hidden = true; $('abrirChat').setAttribute('aria-expanded','false'); $('abrirChat').focus(); };

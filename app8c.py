@@ -1268,8 +1268,6 @@ PAGINA = r"""<!doctype html>
   <a data-ej="Dame del año censal 2008, de Nuevo León, de todos los sectores, variables K000A e I000A">2008 · Nuevo León · K000A e I000A</a>
   <a data-ej="variables relacionadas con el PIB de Chihuahua en 2023">PIB · Chihuahua · 2023</a>
   <a data-ej="gastos por consumo de las manufacturas en Monterrey en 2018">Manufacturas · Monterrey · 2018</a>
-  <a data-ej="compara el personal ocupado de Chihuahua y Sonora en 2018 y 2023">Comparar · Chihuahua y Sonora</a>
-  <a data-ej="evolución del personal ocupado en Chihuahua entre 2003 y 2023">Evolución · Chihuahua 2003-2023</a>
 </div>
 <button id="btnInterpretar">Interpretar</button>
 <div id="estado"></div>

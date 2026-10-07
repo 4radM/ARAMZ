@@ -49,7 +49,7 @@ from saic_motor3 import (URL_PAGINA, Catalogos, consultar_saic, contar_filas, cr
                          descargar_excel_oficial, nombre_base, validar_consulta)
 
 # ------------------------------------------------------------------ LÍMITES
-LIMITE_IA_DIARIO = 15       # tope propio para interpretar con Gemini; Ari usa otro contador
+LIMITE_IA_DIARIO = max(0, int(os.environ.get("GEMINI_LIMITE_DIARIO", "100")))       # tope propio para interpretar con Gemini; Ari usa otro contador
 MAX_FILAS_VISTA = 300       # filas máximas para mostrar la tabla en la página
 MAX_FILAS_DESCARGA = 20000  # filas máximas para el Excel oficial
 MAX_TEXTO = 500             # caracteres máximos de la petición
@@ -114,49 +114,60 @@ def registrar(archivo, datos):
 
 
 def permitir_intento_codigo():
-    ip = ip_visitante()
-    ahora = time.time()
-    recientes = [t for t in _intentos.get(ip, []) if ahora - t < VENTANA_CODIGO_SEG]
-    if len(recientes) >= MAX_INTENTOS_CODIGO:
-        return False
-    recientes.append(ahora)
-    _intentos[ip] = recientes
+    llave = identidad_consulta()
+    ahora = time.monotonic()
+    with _limites_lock:
+        recientes = [t for t in _intentos.get(llave, []) if ahora - t < VENTANA_CODIGO_SEG]
+        if len(recientes) >= MAX_INTENTOS_CODIGO:
+            return False
+        _intentos[llave] = recientes + [ahora]
     return True
 
 
+_limites_lock = threading.Lock()
+_gemini_cupos = threading.BoundedSemaphore(2)
+
 def permitir_visita():
-    ip = ip_visitante()
-    ahora = time.time()
-    recientes = [t for t in _visitas.get(ip, []) if ahora - t < VENTANA_SEG]
-    if len(recientes) >= MAX_POR_VENTANA:
-        return False
-    recientes.append(ahora)
-    _visitas[ip] = recientes
+    ahora = time.monotonic()
+    if not session.get('visitante_carga'):
+        session['visitante_carga'] = secrets.token_hex(16)
+    llave = 'persona|' + (session.get('usuario_id') or session['visitante_carga'])
+    ip = 'red|' + ip_visitante()
+    with _limites_lock:
+        for k in list(_visitas):
+            _visitas[k] = [t for t in _visitas[k] if ahora - t < VENTANA_SEG]
+            if not _visitas[k]:
+                del _visitas[k]
+        personales = _visitas.get(llave, [])
+        red = _visitas.get(ip, [])
+        if len(personales) >= MAX_POR_VENTANA or len(red) >= 600:
+            return False
+        _visitas[llave] = personales + [ahora]
+        _visitas[ip] = red + [ahora]
     return True
 
 
 def silencioso(funcion, *args, **kwargs):
-    """Ejecuta una función del motor sin llenar la Terminal de mensajes."""
-    with contextlib.redirect_stdout(io.StringIO()):
-        return funcion(*args, **kwargs)
+    # redirect_stdout altera una variable global y no es seguro entre hilos.
+    return funcion(*args, **kwargs)
 
 
 def llm_limitado(prompt):
-    """Gemini con tope diario (las respuestas en caché no llegan aquí)."""
-    hoy = date.today().isoformat()
-    if _ia["fecha"] != hoy:
-        _ia["fecha"], _ia["n"] = hoy, 0
-    if _ia["n"] >= LIMITE_IA_DIARIO:
-        raise RuntimeError("Se alcanzó el límite diario de consultas con IA. "
-                           "Intenta mañana o escribe la petición con claves "
-                           "explícitas (por ejemplo: 2008, Nuevo León, K000A).")
-    texto = llm_gemini(prompt)
-    _ia["n"] += 1  # solo cuentan las llamadas que sí se completaron
-    return texto
+    if not _gemini_cupos.acquire(timeout=10):
+        raise RuntimeError('Hay varias interpretaciones con IA en curso. Espera un momento e intenta de nuevo.')
+    try:
+        with _limites_lock:
+            hoy = date.today().isoformat()
+            if _ia['fecha'] != hoy:
+                _ia['fecha'], _ia['n'] = hoy, 0
+            if _ia['n'] >= LIMITE_IA_DIARIO:
+                raise RuntimeError('Se alcanzó el límite diario de interpretación con IA. Puedes usar claves y filtros explícitos.')
+            _ia['n'] += 1
+        return llm_gemini(prompt)
+    finally:
+        _gemini_cupos.release()
 
 
-
-# ------------------------------------------------------------------ CUENTAS E HISTORIAL
 # PostgreSQL en Render; SQLite solamente en local o en un disco persistente.
 DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
 CUENTAS_DB = os.environ.get('CUENTAS_DB', '').strip()
@@ -269,7 +280,7 @@ def iniciar_sesion_usuario(uid):
 
 
 def permitir_intento_cuenta():
-    llave = hmac.new(app.secret_key.encode(), ('cuenta|' + ip_visitante()).encode(), hashlib.sha256).hexdigest()
+    llave = hmac.new(app.secret_key.encode(), ('cuenta|' + identidad_consulta()).encode(), hashlib.sha256).hexdigest()
     ahora = time.time()
     with base_cuentas() as con:
         sql_cuentas(con, 'DELETE FROM aramz_intentos WHERE inicio < ?', (ahora - 86400,))
@@ -716,7 +727,7 @@ class ErrorAri(RuntimeError):
 
 
 def permitir_pregunta_ari():
-    ip = ip_visitante()
+    ip = identidad_consulta()
     ahora = time.time()
     with _ari_lock:
         recientes = [t for t in _ari_visitas.get(ip, []) if ahora - t < 60]
@@ -1228,7 +1239,7 @@ def registrar_uso(resp):
                             n_lugares=len(plan.get("lugares") or []))
             if resp.status_code >= 400 and resp.is_json:
                 info["error"] = str((resp.get_json(silent=True) or {}).get("error", ""))[:300]
-            if request.path != "/api/reportar":
+            if request.path != "/api/reportar" and not (request.path.startswith("/api/consultas/") and request.path.endswith("/resultado") and resp.status_code == 202):
                 registrar("uso.jsonl", info)
     except Exception:
         pass
@@ -1243,6 +1254,7 @@ def inicio():
 
 @app.get("/api/estado")
 def api_estado():
+    identidad_consulta()
     return jsonify(requiere_codigo=bool(CODIGO_ACCESO),
                    autenticado=sesion_valida(), csrf=csrf_actual())
 
@@ -1331,6 +1343,160 @@ def api_interpretar():
         return responder_error(e)
 
 
+# Cola y caché compartidas por los hilos de un único proceso Gunicorn.
+from concurrent.futures import ThreadPoolExecutor
+from collections import OrderedDict
+SAIC_SIMULTANEAS = 4
+SAIC_ESPERA = 60
+CACHE_SEGUNDOS = 600
+CACHE_MAX_BYTES = 8 * 1024 * 1024
+_saic_cupos = threading.BoundedSemaphore(SAIC_SIMULTANEAS)
+_ejecutor_saic = ThreadPoolExecutor(max_workers=SAIC_SIMULTANEAS, thread_name_prefix='saic')
+_trabajos_lock = threading.RLock()
+_trabajos = {}
+_vuelos = {}
+_cache_saic = OrderedDict()
+
+
+def identidad_consulta():
+    if not session.get('visitante_carga'):
+        session['visitante_carga'] = secrets.token_hex(16)
+    return session.get('usuario_id') or session['visitante_carga']
+
+
+def limpiar_trabajos():
+    ahora = time.monotonic()
+    for clave in list(_cache_saic):
+        if ahora - _cache_saic[clave][0] > CACHE_SEGUNDOS:
+            del _cache_saic[clave]
+    for clave in list(_trabajos):
+        j = _trabajos[clave]
+        if j['vuelo']['futuro'].done() and ahora - j['creado'] > 600:
+            del _trabajos[clave]
+    for clave in list(_vuelos):
+        if _vuelos[clave]['futuro'].done():
+            del _vuelos[clave]
+
+
+def leer_saic_limitado(args, vuelo=None):
+    anios, lugares, variables, acts, estr, solo_total, con_total = args
+    espera = max(0, SAIC_ESPERA-(time.monotonic()-vuelo['creado'])) if vuelo else SAIC_ESPERA
+    if not _saic_cupos.acquire(timeout=espera):
+        raise RuntimeError('La espera para consultar al INEGI superó un minuto. Intenta de nuevo.')
+    sesion = None
+    try:
+        if vuelo is not None:
+            vuelo['estado']='consultando'
+        sesion = crear_sesion()
+        total = contar_filas(sesion, anios, lugares, acts, estr, total=(solo_total or con_total))
+        if total is not None and total > MAX_FILAS_VISTA:
+            return {'demasiado_grande': True, 'filas': total}
+        df = consultar_saic(anios, lugares, variables, acts, estr, cat=CAT, sesion=sesion,
+                            verificar=False, solo_total=solo_total, con_total=con_total)
+        if df.empty:
+            return {'vacio': True, 'columnas': [], 'filas': []}
+        tabla = json.loads(df.rename(columns={'muni': 'Municipio'}).to_json(orient='split', force_ascii=False))
+        return {'columnas': tabla['columns'], 'filas': tabla['data']}
+    finally:
+        if sesion is not None and hasattr(sesion, 'close'):
+            sesion.close()
+        _saic_cupos.release()
+
+
+def ejecutar_vuelo(vuelo, clave, args):
+    if time.monotonic() - vuelo['creado'] > SAIC_ESPERA:
+        raise RuntimeError('Tu consulta esperó más de un minuto. Intenta de nuevo.')
+    resultado = leer_saic_limitado(args, vuelo)
+    if not resultado.get('vacio') and not resultado.get('demasiado_grande'):
+        serializado = json.dumps(resultado, ensure_ascii=False)
+        tamaño = len(serializado.encode('utf-8'))
+        if tamaño <= CACHE_MAX_BYTES:
+            with _trabajos_lock:
+                _cache_saic[clave] = (time.monotonic(), serializado, tamaño)
+                while len(_cache_saic) > 20 or sum(v[2] for v in _cache_saic.values()) > CACHE_MAX_BYTES:
+                    _cache_saic.popitem(last=False)
+    return resultado
+
+
+def respuesta_consulta(resultado, cuerpo):
+    if resultado.get('vacio') or resultado.get('demasiado_grande'):
+        return {'ok': True, **resultado}
+    df = pd.DataFrame(resultado['filas'], columns=resultado['columnas'])
+    df, respuesta = analizar_resultados(df, cuerpo.get('plan') or {})
+    tabla = json.loads(df.to_json(orient='split', force_ascii=False))
+    guardado = None
+    aviso = None
+    try:
+        guardado = guardar_consulta_usuario(cuerpo.get('plan'), cuerpo.get('texto'))
+    except ValueError as e:
+        aviso = str(e)
+    except Exception:
+        aviso = 'Los datos se cargaron, pero no pude guardar la consulta en tu historial.'
+    return dict(ok=True, columnas=tabla['columns'], filas=tabla['data'], respuesta=respuesta,
+                contexto=firmar_contexto(cuerpo.get('plan'), tabla, respuesta),
+                guardada=bool(guardado), aviso_historial=aviso)
+
+
+@app.post('/api/consultas/iniciar')
+def api_iniciar_consulta():
+    if not permitir_visita():
+        return jsonify(error='Demasiadas solicitudes. Espera un minuto.'), 429
+    try:
+        cuerpo = request.get_json(silent=True) or {}
+        plan = plan_guardable(cuerpo.get('plan'))
+        args = parametros({'plan': plan})
+        a, l, v, ac, e = validar_consulta(CAT, *args[:5], solo_total=args[5])
+        args = (a, l, v, ac, e, args[5], args[6])
+        clave = hashlib.sha256(json.dumps(args, sort_keys=True).encode()).hexdigest()
+        dueño = identidad_consulta()
+        firma = hashlib.sha256(json.dumps(plan, sort_keys=True).encode()).hexdigest()
+        with _trabajos_lock:
+            limpiar_trabajos()
+            for jid, trabajo in _trabajos.items():
+                if trabajo['dueño'] == dueño and trabajo['firma'] == firma and not trabajo['vuelo']['futuro'].done():
+                    return jsonify(ok=True, trabajo=jid, estado=trabajo['vuelo']['estado']), 202
+            if len(_trabajos) >= 200:
+                return jsonify(error='Hay muchas consultas en curso. Espera un momento y vuelve a intentar.'), 503
+            if clave in _cache_saic:
+                resultado = json.loads(_cache_saic[clave][1])
+                return jsonify(respuesta_consulta(resultado, {'plan': plan, 'texto': cuerpo.get('texto')}))
+            if clave not in _vuelos:
+                if sum(not x['futuro'].done() for x in _vuelos.values()) >= 40:
+                    return jsonify(error='La lista de espera está llena. Intenta de nuevo en un minuto.'), 503
+                vuelo = {'estado': 'espera', 'creado': time.monotonic()}
+                vuelo['futuro'] = _ejecutor_saic.submit(ejecutar_vuelo, vuelo, clave, args)
+                _vuelos[clave] = vuelo
+            vuelo = _vuelos[clave]
+            jid = secrets.token_urlsafe(24)
+            _trabajos[jid] = {'dueño': dueño, 'firma': firma, 'vuelo': vuelo,
+                             'creado': time.monotonic(), 'cuerpo': {'plan': plan, 'texto': str(cuerpo.get('texto') or '')[:MAX_TEXTO]},
+                             'respuesta': None, 'lock': threading.Lock()}
+        return jsonify(ok=True, trabajo=jid, estado=vuelo['estado']), 202
+    except Exception as e:
+        return responder_error(e)
+
+
+@app.post('/api/consultas/<jid>/resultado')
+def api_resultado_consulta(jid):
+    with _trabajos_lock:
+        trabajo = _trabajos.get(jid)
+    if not trabajo or trabajo['dueño'] != identidad_consulta():
+        return jsonify(error='La consulta ya no está disponible. Vuelve a pulsar Ver datos.'), 404
+    futuro = trabajo['vuelo']['futuro']
+    if not futuro.done():
+        if trabajo['vuelo']['estado']=='espera' and time.monotonic()-trabajo['vuelo']['creado']>SAIC_ESPERA:
+            futuro.cancel()
+            return jsonify(error='Tu consulta esperó más de un minuto. Intenta de nuevo.'), 503
+        return jsonify(ok=True, pendiente=True, estado=trabajo['vuelo']['estado']), 202
+    try:
+        with trabajo['lock']:
+            if trabajo['respuesta'] is None:
+                trabajo['respuesta'] = respuesta_consulta(futuro.result(), trabajo['cuerpo'])
+            return jsonify(trabajo['respuesta'])
+    except Exception as e:
+        return responder_error(e)
+
+
 @app.post("/api/consultar")
 def api_consultar():
     if not permitir_visita():
@@ -1340,15 +1506,10 @@ def api_consultar():
             request.get_json(silent=True))
         a_ok, l_ok, v_ok, ac_ok, e_ok = silencioso(
             validar_consulta, CAT, anios, lugares, variables, acts, estr, solo_total=solo_total)
-        sesion = crear_sesion()
-        total = contar_filas(sesion, a_ok, l_ok, ac_ok, e_ok, total=(solo_total or con_total))
-        if total is not None and total > MAX_FILAS_VISTA:
-            return jsonify(ok=True, demasiado_grande=True, filas=total)
-        df = silencioso(consultar_saic, anios, lugares, variables, acts, estr,
-                        cat=CAT, sesion=sesion, verificar=False,
-                        solo_total=solo_total, con_total=con_total)
-        if df.empty:
-            return jsonify(ok=True, vacio=True, columnas=[], filas=[])
+        resultado = leer_saic_limitado((a_ok, l_ok, v_ok, ac_ok, e_ok, solo_total, con_total))
+        if resultado.get('demasiado_grande') or resultado.get('vacio'):
+            return jsonify(ok=True, **resultado)
+        df = pd.DataFrame(resultado['filas'], columns=resultado['columnas'])
         df = df.rename(columns={"muni": "Municipio"})
         df, respuesta = analizar_resultados(df, (request.get_json(silent=True) or {}).get("plan") or {})
         tabla = json.loads(df.to_json(orient="split", force_ascii=False))
@@ -1369,6 +1530,15 @@ def api_consultar():
 
 
 def obtener_excel_oficial(cuerpo):
+    if not _saic_cupos.acquire(blocking=False):
+        raise RuntimeError('Hay consultas en curso. Espera un momento para descargar el archivo.')
+    try:
+        return _obtener_excel_oficial(cuerpo)
+    finally:
+        _saic_cupos.release()
+
+
+def _obtener_excel_oficial(cuerpo):
     """Descarga el Excel oficial del SAIC. Devuelve (bytes, base_del_nombre)."""
     anios, lugares, variables, acts, estr, solo_total, con_total = parametros(cuerpo)
     a_ok, l_ok, v_ok, ac_ok, e_ok = silencioso(
@@ -2119,7 +2289,7 @@ function mostrarPlan(d) {
 }
 
 async function interpretar() {
-  if (consultaEnCurso || recuperandoHistorial) { estado('Espera a que termine la consulta actual.'); return; }
+  if (consultaEnCurso || recuperandoHistorial || $('btnInterpretar').disabled) { estado('Espera a que termine la consulta actual.'); return; }
   reiniciarContextoChat();
   const texto = $('texto').value.trim(); if (!texto) return;
   $('btnInterpretar').disabled = true; limpiarResultados(); $('plan').hidden = true; estado('Interpretando…');
@@ -2136,6 +2306,7 @@ function formato(v) {
   return typeof v === 'number' ? v.toLocaleString('es-MX') : String(v);
 }
 
+let trabajoConsulta=null;
 async function verDatos() {
   if (!planActual || consultaEnCurso) return;
   consultaEnCurso = true; reiniciarContextoChat(); limpiarResultados();
@@ -2145,7 +2316,17 @@ async function verDatos() {
   $('btnInterpretar').disabled = true;
   estado('Consultando el SAIC…'); vaciar($('tabla')); vaciar($('grafica'));
   try {
-    const r = await post('/api/consultar', { plan: planEnviado, texto: $('texto').value }); const d = await r.json();
+    let r = await post('/api/consultas/iniciar', { plan: planEnviado, texto: $('texto').value }); let d = await r.json();
+    const inicioEspera = Date.now();
+    while(r.status===202 && (d.trabajo || d.pendiente)) {
+      const trabajo=d.trabajo || trabajoConsulta;
+      trabajoConsulta=trabajo;
+      estado(d.estado==='espera' ? 'Tu consulta está en espera. Comenzará automáticamente cuando haya espacio; no necesitas volver a pulsar Ver datos.' : 'Consultando datos del INEGI…');
+      if(Date.now()-inicioEspera>300000) { estado('La consulta está tardando demasiado. Espera un momento antes de reintentar.',true);return; }
+      await new Promise(resolve=>setTimeout(resolve,1500));
+      r=await post('/api/consultas/'+encodeURIComponent(trabajo)+'/resultado',{});d=await r.json();
+    }
+    trabajoConsulta=null;
     if (!r.ok) { estado(d.error || 'Ocurrió un error.', true); return; }
     if (d.demasiado_grande) { estado('La consulta tiene ' + d.filas + ' filas: es muy grande para mostrarla aquí, pero puedes descargar el Excel oficial.'); return; }
     if (d.vacio) { estado('El SAIC no devolvió datos para esta combinación.'); return; }
@@ -2163,7 +2344,11 @@ async function verDatos() {
   }
 }
 
+let descargaEnCurso=false;
 async function descargar(url, respaldo, mensaje) {
+  if(descargaEnCurso || consultaEnCurso || recuperandoHistorial) { estado('Espera a que termine la solicitud actual.');return; }
+  descargaEnCurso=true;
+  const botonesDescarga=[...$('plan').querySelectorAll('button')];botonesDescarga.forEach(b=>b.disabled=true);
   estado(mensaje);
   try {
     const r = await post(url, { plan: planActual, texto: $('texto').value });
@@ -2174,6 +2359,7 @@ async function descargar(url, respaldo, mensaje) {
     a.download = m ? m[1] : respaldo; document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(a.href); estado(r.headers.get('X-Historial-Error') === '1' ? 'Descarga lista; no pude guardar la consulta en tu historial.' : (r.headers.get('X-Consulta-Guardada') === '1' ? 'Descarga lista. Consulta guardada en Mis consultas.' : ''));
   } catch (e) { estado('No pude conectar con el servidor.', true); }
+  finally {descargaEnCurso=false;botonesDescarga.forEach(b=>b.disabled=!planActual?.listo);}
 }
 
 const COLORES = ['#1e5aa8', '#e07b00', '#2a9d8f', '#b3261e', '#7b4bb3', '#6c757d', '#c9a227', '#1d6b3a'];

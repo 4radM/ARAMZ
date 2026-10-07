@@ -989,7 +989,7 @@ def interpretar_ampliado(texto, previo=None, opciones=None):
     limpio = re.sub(poner, ' UE ', limpio)
     solo_comando = not re.sub(poner, '', re.sub(quitar, '', t)).strip(' .,;')
     analisis = None
-    productividad = seleccion == 'productividad' or (seleccion == 'auto' and bool(re.search(r'\b(?:mas productiv[oa]|productividad)\b', t)))
+    productividad = seleccion == 'productividad' or (seleccion == 'auto' and bool(re.search(r'\b(?:mas productiv[oa]s?|productividad)\b', t)))
     produccion = seleccion == 'produccion' or (seleccion == 'auto' and bool(re.search(r'\b(?:produccion total|mayor produccion|mas produccion|produjo mas|produjeron mas|produce mas)\b', t)))
     por_persona = seleccion == 'produccion_por_persona' or (seleccion == 'auto' and bool(re.search(r'\bproduccion|produjo|produce', t)) and bool(re.search(r'por trabajador|por persona|respecto (?:a |al )?(?:personal|trabajadores)|en relacion (?:a |al )?personal', t)))
     if por_persona:
@@ -1011,7 +1011,7 @@ def interpretar_ampliado(texto, previo=None, opciones=None):
                 raise ValueError('La consulta contiene una variable desconocida.')
     else:
         if productividad or produccion:
-            limpio = re.sub(r'\b(?:cual es|cual|el estado|los estados|el sector|los sectores|sector|sectores|economico|economicos|que|mas productiv[oa]|productividad|produccion total|mayor produccion|mas produccion|produjo mas|produjeron mas|produce mas|por trabajador|por persona|respecto al personal ocupado|respecto a personal ocupado|respecto personal ocupado)\b', ' ', limpio)
+            limpio = re.sub(r'\b(?:cual es|cuales|cual|es|son|fue|fueron|tiene|tienen|el estado|los estados|estados?|el sector|los sectores|sector|sectores|economico|economicos|que|mas productiv[oa]s?|mayor productividad|mas productividad|productividad|produccion total|mayor produccion|mas produccion|produjo mas|produjeron mas|produce mas|por trabajador|por persona|respecto al personal ocupado|respecto a personal ocupado|respecto personal ocupado)\b', ' ', limpio)
             # El ámbito pedido debe conservarse: sector de Chihuahua no significa todos los estados.
             tiene_lugar = any(re.search(r'(?<!\w)' + re.escape(nombre) + r'(?!\w)', texto_normal(limpio)) for nombre in CAT._estados)
             if not por_sector and not tiene_lugar and re.search(r'\bestados?\b', t):

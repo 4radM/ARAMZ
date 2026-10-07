@@ -1451,6 +1451,8 @@ PAGINA = r"""<!doctype html>
   body { font-family:-apple-system,"Segoe UI",Roboto,sans-serif; max-width:960px; margin:2rem auto;
          padding:0 1rem; color:#1f2933; line-height:1.5; }
   .marca { display:flex; align-items:center; gap:.65rem; padding-bottom:1rem; margin-bottom:1.2rem; border-bottom:1px solid var(--borde); color:#484f56; font-size:2.4rem; letter-spacing:.08em; }
+  .marca-inicio { display:inline-flex; align-items:center; gap:.65rem; color:inherit; text-decoration:none; }
+  .marca-inicio:focus-visible { outline:2px solid var(--azul, #215dab); outline-offset:5px; border-radius:4px; }
   .marca svg { width:38px; height:38px; flex:none; }
   h1 { font-size:1.6rem; margin-bottom:.2rem; }
   .sub { color:#52606d; margin-top:0; }
@@ -1525,11 +1527,12 @@ PAGINA = r"""<!doctype html>
 </head>
 <body>
 <header class="marca" aria-label="ARAMZ">
+  <a class="marca-inicio" href="/" aria-label="ARAMZ: volver al inicio" title="Volver al inicio">
   <svg viewBox="0 0 40 40" role="img" aria-label="Gráfica de barras con tendencia ascendente">
     <path d="M5 33V25H10V33ZM14 33V20H19V33ZM23 33V14H28V33ZM32 33V7H37V33Z" fill="#cbd0d5"/>
     <path d="M7 21L16 12L25 17L34 5" fill="none" stroke="#484f56" stroke-width="2"/>
     <g fill="#484f56"><circle cx="7" cy="21" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="25" cy="17" r="2"/><circle cx="34" cy="5" r="2"/></g>
-  </svg><span>ARAMZ</span>
+  </svg><span>ARAMZ</span></a>
   <div id="menuCuenta" class="menu-cuenta" hidden>
     <button id="abrirMenuCuenta" class="boton-menu" type="button" aria-label="Abrir menú de cuentas" aria-controls="barraCuenta" aria-expanded="false"><span></span><span></span><span></span></button>
     <div id="barraCuenta" class="barra-cuenta" hidden>

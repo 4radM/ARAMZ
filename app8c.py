@@ -1308,7 +1308,7 @@ PAGINA = r"""<!doctype html>
 <button id="abrirChat" class="chat-flotante" type="button" aria-controls="panelChat" aria-expanded="false" aria-label="Abrir chat con Ari">💬 Pregúntale a Ari</button>
 <aside id="panelChat" class="chat-panel" hidden aria-label="Ari, tu guía de datos">
   <div class="fila"><strong>Ari · tu guía de datos</strong><button id="cerrarChat" class="sec" type="button" aria-label="Cerrar asistente">Cerrar</button></div>
-  <p class="fuente">Explica la consulta visible. Las preguntas abiertas pueden usar IA y enviar la consulta visible a Claude.</p>
+  <p class="fuente">Explica la consulta visible.</p>
   <div id="mensajesChat" role="log" aria-live="polite" aria-relevant="additions"></div>
   <div class="preguntas-chat">
     <button class="sec" type="button" data-pregunta="¿Qué estoy viendo?">¿Qué veo?</button>

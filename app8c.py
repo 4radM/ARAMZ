@@ -706,7 +706,7 @@ _ari_lock = threading.Lock()
 _ari_visitas = {}
 
 ARI_PERSONALIDAD = '''Te llamas Ari y eres la guía de datos de ARAMZ.
-Tu personalidad es curiosa, paciente, cercana y directa. Habla español claro y natural.
+Tu personalidad es paciente, clara y directa. Habla español claro y natural. Emplea lenguaje impersonal: «se obtuvo», «no se pudo», «se muestran». Evita «yo», «puedo», «entendí» y otras expresiones en primera persona. No menciones nombres de proveedores o motores de inteligencia artificial.
 Explica paso a paso cuando haga falta, con ejemplos cortos. No ridiculices preguntas ni uses jerga sin explicarla.
 No repitas tu presentación en cada respuesta. Evita halagos, relleno y afirmar que sabes cosas que no sabes.
 Tu trabajo es ayudar a entender la consulta SAIC visible: variables, unidades, filtros, fuente, tablas y gráficas.
@@ -869,16 +869,18 @@ def explicacion_directa(pregunta, contexto):
         if not elegida or not variables[elegida]:
             return 'No hay valores disponibles para elaborar ese top.'
         n = int(pedido_top.group(1))
-        lista = '\n'.join(f'{i}. {r["etiqueta"]}: {r["valor"]:,.6g}' for i, r in enumerate(variables[elegida][:n], 1))
-        return f'Aquí tienes el top {n} de la tabla visible, según {elegida.replace("|", " · ")}:\n{lista}'
+        if re.search(r'\b(?:peores?|menores?|menos|mas baj[oa]s?)\b', q):
+            return 'Para obtener los valores más bajos debe usarse la tabla completa de la consulta actual. La muestra disponible para esta explicación no permite identificar los mínimos.'
+        lista = '\n'.join(f'{i}. {r["etiqueta"]}: {r["valor"]:,.6g}' for i, r in enumerate((sorted(variables[elegida], key=lambda r: r['valor'])[:n] if re.search(r'\b(?:peores?|menores?|menos|mas baj[oa]s?)\b', q) else variables[elegida][:n]), 1))
+        return f'Se muestran los resultados del top {n} de la tabla visible, según {elegida.replace("|", " · ")}:\n{lista}'
     if re.fullmatch(r'[¿¡!?. ]*(?:hola|buenas|quien eres|como te llamas)[¿¡!?. ]*', q):
-        return 'Soy Ari, tu guía para entender los datos de ARAMZ. Vamos paso a paso: ¿qué te gustaría aclarar de tu consulta?'
+        return 'Ari es la guía para entender los datos de ARAMZ. ¿Qué parte de la consulta requiere una explicación?'
     if re.search(r'\b(?:fuente|de donde|origen|inegi)\b', q):
         return 'Claro. Los datos provienen del SAIC del INEGI, Censos Económicos 2024. Los años de la consulta son los periodos de referencia de los datos. ARAMZ interpreta tus filtros y dibuja las gráficas; no produce las cifras oficiales.'
     if re.search(r'\b(?:reservad|confidencial|dato omitido|celdas vacias|vacios|guion)', q):
         return 'El símbolo — señala un valor que no está disponible en la respuesta. Puede tratarse de confidencialidad o reserva; no debe interpretarse como cero. Los porcentajes y rankings no convierten estos valores en ceros.'
     if re.search(r'\b(?:porcentaj|participacion)', q):
-        return 'Un porcentaje indica qué parte del total representa un resultado. Por ejemplo, si de 100 negocios consultados 25 son manufactureros, representan el 25 %. El total depende de los datos que consultaste.'
+        return 'La participación porcentual indica qué parte de la suma de los valores disponibles del mismo año representa una fila de la consulta. La explicación de la vista identifica si la tabla contiene porcentajes y usa sus cifras; los valores reservados no se convierten en ceros.'
     if ('productividad' in q or 'productivo' in q) and re.search(r'que|explica|como|significa',q):
         return 'Aquí la productividad por trabajador es A131A (valor agregado censal bruto) dividido entre H001A (personal ocupado total), en millones de pesos por persona ocupada. Un lugar puede producir más en total y tener menor productividad por trabajador. Es una comparación de las actividades cubiertas por el SAIC, no de toda la economía.'
     if re.search(r'\b(?:top|ranking|ordenad|clasificacion)', q) and re.search(r'que (?:es|significa)|que significan|explica', q):
@@ -964,6 +966,36 @@ def api_chat():
         return jsonify(error='El asistente no pudo responder. Puedes preguntar por la fuente, las variables o los porcentajes.'), 503
 
 
+def mensaje_publico(texto):
+    texto = str(texto)
+    texto = re.sub(r'No (?:pude|se pudo) usar la IA \(.*?\) y por reglas no entendí estas palabras:', 'No se pudo completar la interpretación automática. Las reglas no reconocieron estas palabras:', texto, flags=re.I)
+    for antes, despues in {'No pude': 'No se pudo', 'no pude': 'no se pudo', 'No puedo': 'No se puede', 'No encontré': 'No se encontró', 'No encuentro': 'No se encontró', 'No reconozco': 'No se reconoce', 'Entendí': 'Se interpretó', 'Expandí': 'Se expandió', 'usé': 'se utilizó', 'dejé': 'se conservó', 'elegí': 'se seleccionó', 'Estoy recuperando': 'Se está recuperando', 'Puedo ayudarte': 'Se pueden consultar', 'Sí puedo': 'Se puede', 'Todavía puedo': 'Todavía se puede', 'Por hoy llegué': 'Por hoy se llegó', 'Mis respuestas abiertas': 'Las respuestas abiertas', 'mi motor': 'el servicio', 'Mi motor': 'El servicio'}.items():
+        texto = texto.replace(antes, despues)
+    texto = texto.replace('con IA', 'automática').replace('sin IA', 'por reglas')
+    texto = re.sub(r'Gemini|Claude|Anthropic', 'el servicio de interpretación', texto, flags=re.I)
+    return texto
+
+
+@app.after_request
+def lenguaje_interfaz(resp):
+    if not request.path.startswith('/api/') or not resp.is_json:
+        return resp
+    datos = resp.get_json(silent=True)
+    if not isinstance(datos, dict):
+        return resp
+    for clave in ('error', 'mensaje', 'respuesta', 'supuestos', 'notas', 'avisos', 'aclarar', 'aviso_historial'):
+        valor = datos.get(clave)
+        if isinstance(valor, str):
+            datos[clave] = mensaje_publico(valor)
+        elif isinstance(valor, list):
+            datos[clave] = [mensaje_publico(v) if isinstance(v, str) else v for v in valor]
+    for opcion in datos.get('opciones', []) if isinstance(datos.get('opciones'), list) else []:
+        if isinstance(opcion, dict) and isinstance(opcion.get('mensaje'), str):
+            opcion['mensaje'] = mensaje_publico(opcion['mensaje'])
+    resp.set_data(app.json.dumps(datos))
+    return resp
+
+
 def texto_normal(texto):
     return ''.join(c for c in unicodedata.normalize('NFD', texto.lower())
                    if unicodedata.category(c) != 'Mn')
@@ -972,6 +1004,18 @@ def texto_normal(texto):
 def interpretar_ampliado(texto, previo=None, opciones=None):
     """Amplía las reglas sin modificar saic_interprete7.py."""
     t = re.sub(r'\s+', ' ', texto_normal(texto))
+    t = re.sub(r'\bvacb\b', 'A131A', t, flags=re.I)
+    # Índice local a esta petición: no cambia el catálogo compartido entre usuarios.
+    catalogo = copy.copy(CAT)
+    catalogo._estados = dict(CAT._estados)
+    alias_lugares = {'mty': '19039', 'cuu': '08019', 'gdl': '14039',
+                     'tj': '02004', 'tij': '02004', 'cjs': '08037',
+                     'hmo': '26030', 'cul': '25006', 'mlm': '16053', 'mid': '31050'}
+    alias_usados = []
+    for alias, clave in alias_lugares.items():
+        if clave in CAT.lugares and re.search(r'\b' + re.escape(alias) + r'\b', t):
+            catalogo._estados[alias] = clave
+            alias_usados.append((alias, clave))
     opciones = opciones if isinstance(opciones, dict) else {}
     seleccion = opciones.get('metrica', 'auto')
     if seleccion not in ('auto', 'produccion', 'productividad', 'produccion_por_persona'):
@@ -1013,7 +1057,7 @@ def interpretar_ampliado(texto, previo=None, opciones=None):
         if productividad or produccion:
             limpio = re.sub(r'\b(?:cual es|cuales|cual|es|son|era|eran|fue|fueron|tiene|tienen|el estado|los estados|estados?|el sector|los sectores|sector|sectores|economico|economicos|que|mas productiv[oa]s?|mayor productividad|mas productividad|productividad|produccion total|mayor produccion|mas produccion|produjo mas|produjeron mas|produce mas|por trabajador|por persona|respecto al personal ocupado|respecto a personal ocupado|respecto personal ocupado)\b', ' ', limpio)
             # El ámbito pedido debe conservarse: sector de Chihuahua no significa todos los estados.
-            tiene_lugar = any(re.search(r'(?<!\w)' + re.escape(nombre) + r'(?!\w)', texto_normal(limpio)) for nombre in CAT._estados)
+            tiene_lugar = any(re.search(r'(?<!\w)' + re.escape(nombre) + r'(?!\w)', texto_normal(limpio)) for nombre in catalogo._estados)
             if not por_sector and not tiene_lugar and re.search(r'\bestados?\b', t):
                 limpio += ' todos los estados'
             limpio = re.sub(r'\b(?:los )?municipios de\b', 'todos los municipios de', limpio)
@@ -1027,7 +1071,20 @@ def interpretar_ampliado(texto, previo=None, opciones=None):
             limpio = re.sub(r'\b(?:los )?municipios de\b', 'todos los municipios de', limpio)
             limpio = re.sub(r'\bmanufactureras?\b', 'manufacturas', limpio)
             analisis = 'ranking'
-        plan = interpretar(limpio, CAT, llm=llm_limitado)
+        from saic_interprete7 import extraer_determinista
+        detectado = extraer_determinista(limpio, catalogo)
+        if detectado['lugares'] and not detectado['variables'] and not detectado['residuo'] and not detectado['aclarar']:
+            plan = {k: copy.deepcopy(detectado[k]) for k in ('anios', 'lugares', 'variables', 'estratos', 'notas', 'avisos', 'aclarar', 'opciones')}
+            plan.update(actividades=[], usa_ia=False, supuestos=[], faltantes=['variables'])
+            if not plan['anios']:
+                ultimo = max(int(a) for a in CAT.anios)
+                plan['anios'] = [ultimo]
+                plan['supuestos'].append(f'No se indicó año; se utilizó {ultimo} (el más reciente).')
+            plan['notas'].append('No se indicó una medida. Especifica, por ejemplo, personal ocupado total, VACB o producción total.')
+        else:
+            plan = interpretar(limpio, catalogo, llm=llm_limitado)
+        for alias, clave in alias_usados:
+            plan['notas'].append(f'Se interpretó {alias.upper()} como el municipio de {CAT.nombre_lugar(clave)} ({clave}).')
         if analisis:
             plan['analisis'] = analisis
             if analisis in ('productividad', 'produccion_por_persona'):
@@ -1047,7 +1104,7 @@ def interpretar_ampliado(texto, previo=None, opciones=None):
         plan['notas'].append('Se compara producción bruta total / personal ocupado, en millones de pesos por persona ocupada.')
     if sin_ue:
         plan['variables'] = [v for v in plan['variables'] if v != 'UE']
-        plan['notas'].append('Excluí UE (unidades económicas), como pediste.')
+        plan['notas'].append('Se excluyó UE (unidades económicas), como se solicitó.')
     elif con_ue and 'UE' in CAT.variables and 'UE' not in plan['variables']:
         plan['variables'].append('UE')
     plan['faltantes'] = [f for f in plan['faltantes'] if f != 'variables']
@@ -1856,7 +1913,7 @@ async function cargarCuenta() {
     $('abrirHistorial').hidden = !cuentaUsuario; $('salirCuenta').hidden = !cuentaUsuario;
     if (!cuentaUsuario) { mostrarVistaHistorial(false); vaciar($('listaHistorial')); }
   } catch (e) {
-    $('nombreCuenta').textContent = 'No pude comprobar la cuenta. Recarga la página para intentar de nuevo.';
+    $('nombreCuenta').textContent = 'No se pudo comprobar la cuenta. Recarga la página para intentar de nuevo.';
   }
 }
 function abrirCuenta(modo) {
@@ -1882,7 +1939,7 @@ async function enviarCuenta(e) {
     if (!r.ok) { $('estadoCuenta').textContent = d.error || 'No se pudo iniciar sesión.'; return; }
     $('cuentaClave').value = ''; $('dialogoCuenta').close();
     await cargarCuenta(); estado('Sesión iniciada. Tus próximas consultas se guardarán automáticamente.');
-  } catch (e) { $('estadoCuenta').textContent = 'No pude conectar. Intenta de nuevo.'; }
+  } catch (e) { $('estadoCuenta').textContent = 'No se pudo conectar. Intenta de nuevo.'; }
   finally { $('enviarCuenta').disabled = false; }
 }
 async function salirCuenta() {
@@ -1890,13 +1947,13 @@ async function salirCuenta() {
   $('salirCuenta').disabled = true;
   try {
     const r = await post('/api/cuenta/salir', {}); const d = await r.json();
-    if (!r.ok) { estado(d.error || 'No pude cerrar la sesión.', true); return; }
+    if (!r.ok) { estado(d.error || 'No se pudo cerrar la sesión.', true); return; }
     if (d.csrf) csrfToken = d.csrf;
     planActual = null; contextoChat = null; datosChat = null; vistaGrafica = null; charla = []; limpiarResultados();
     $('texto').value = ''; $('plan').hidden = true;
     ['plan','tabla','grafica','mensajesChat','listaHistorial'].forEach(k => vaciar($(k)));
     mostrarVistaHistorial(false); await cargarCuenta(); estado('Sesión cerrada.');
-  } catch (e) { estado('No pude cerrar la sesión. Intenta de nuevo.', true); }
+  } catch (e) { estado('No se pudo cerrar la sesión. Intenta de nuevo.', true); }
   finally { $('salirCuenta').disabled = false; }
 }
 let historialActual = {consultas:[],carpetas:[]};
@@ -1913,7 +1970,7 @@ async function cargarHistorial() {
   $('estadoHistorial').textContent=''; $('listaHistorial').textContent = 'Cargando tus consultas…';
   try {
     const r = await fetch('/api/historial'); const d = await r.json();
-    if (!r.ok) { $('listaHistorial').textContent = d.error || 'No pude cargar tu historial.'; return; }
+    if (!r.ok) { $('listaHistorial').textContent = d.error || 'No se pudo cargar tu historial.'; return; }
     historialActual = d;
     const seleccion = $('filtroCarpeta').value;
     vaciar($('filtroCarpeta'));
@@ -1922,7 +1979,7 @@ async function cargarHistorial() {
     });
     if ([...$('filtroCarpeta').options].some(o=>o.value===seleccion)) $('filtroCarpeta').value=seleccion;
     renderHistorial();
-  } catch (e) { $('listaHistorial').textContent = 'No pude conectar con tu historial. Intenta de nuevo.'; }
+  } catch (e) { $('listaHistorial').textContent = 'No se pudo conectar con tu historial. Intenta de nuevo.'; }
 }
 function renderHistorial() {
   vaciar($('listaHistorial'));
@@ -1949,12 +2006,12 @@ function renderHistorial() {
     boton('Organizar',()=>abrirOrganizar(c));
     const fijar=boton(c.fijada?'Desfijar':'Fijar',async()=>{
       fijar.disabled=true;
-      try{const r=await post('/api/historial/'+c.id+'/organizar',{titulo:c.titulo,notas:c.notas||'',etiquetas:c.etiquetas||[],carpeta:c.carpeta,fijada:!c.fijada});const d=await r.json();if(!r.ok){estado(d.error,true);return;}await cargarHistorial();}catch(e){estado('No pude fijar la consulta.',true);}finally{fijar.disabled=false;}
+      try{const r=await post('/api/historial/'+c.id+'/organizar',{titulo:c.titulo,notas:c.notas||'',etiquetas:c.etiquetas||[],carpeta:c.carpeta,fijada:!c.fijada});const d=await r.json();if(!r.ok){estado(d.error,true);return;}await cargarHistorial();}catch(e){estado('No se pudo fijar la consulta.',true);}finally{fijar.disabled=false;}
     });
     const eliminar=boton('Eliminar',async()=>{
       if(!confirm('¿Eliminar esta consulta de tu historial?'))return;
       eliminar.disabled=true;
-      try{const r=await post('/api/historial/'+c.id+'/eliminar',{});const d=await r.json();if(r.ok)await cargarHistorial();else estado(d.error,true);}catch(e){estado('No pude eliminar la consulta.',true);}finally{eliminar.disabled=false;}
+      try{const r=await post('/api/historial/'+c.id+'/eliminar',{});const d=await r.json();if(r.ok)await cargarHistorial();else estado(d.error,true);}catch(e){estado('No se pudo eliminar la consulta.',true);}finally{eliminar.disabled=false;}
     });
     item.appendChild(acciones);$('listaHistorial').appendChild(item);
   });
@@ -1968,7 +2025,7 @@ function abrirOrganizar(c){
 }
 async function guardarOrganizacion(e){
   e.preventDefault();$('guardarOrganizar').disabled=true;
-  try{const r=await post('/api/historial/'+consultaEditando+'/organizar',{titulo:$('organizarTitulo').value,etiquetas:$('organizarEtiquetas').value.split(',').map(t=>t.trim()).filter(Boolean),notas:$('organizarNotas').value,fijada:$('organizarFijada').checked,carpeta:$('organizarCarpeta').value,nueva_carpeta:$('organizarNuevaCarpeta').value});const d=await r.json();if(!r.ok){$('estadoOrganizar').textContent=d.error;return;}$('dialogoOrganizar').close();await cargarHistorial();}catch(e){$('estadoOrganizar').textContent='No pude guardar los cambios.';}finally{$('guardarOrganizar').disabled=false;}
+  try{const r=await post('/api/historial/'+consultaEditando+'/organizar',{titulo:$('organizarTitulo').value,etiquetas:$('organizarEtiquetas').value.split(',').map(t=>t.trim()).filter(Boolean),notas:$('organizarNotas').value,fijada:$('organizarFijada').checked,carpeta:$('organizarCarpeta').value,nueva_carpeta:$('organizarNuevaCarpeta').value});const d=await r.json();if(!r.ok){$('estadoOrganizar').textContent=d.error;return;}$('dialogoOrganizar').close();await cargarHistorial();}catch(e){$('estadoOrganizar').textContent='No se pudo guardar los cambios.';}finally{$('guardarOrganizar').disabled=false;}
 }
 
 async function usarHistorial(id, actualizar, acciones) {
@@ -1977,12 +2034,12 @@ async function usarHistorial(id, actualizar, acciones) {
   const botones = [...acciones.querySelectorAll('button')]; botones.forEach(b => { b.disabled = true; });
   try {
     const r = await post('/api/historial/' + id + '/usar', { actualizar }); const d = await r.json();
-    if (!r.ok) { estado(d.error || 'No pude recuperar la consulta.', true); return; }
+    if (!r.ok) { estado(d.error || 'No se pudo recuperar la consulta.', true); return; }
     mostrarVistaHistorial(false);window.scrollTo(0,0);
     planActual = d.plan; $('texto').value = d.texto; 
     mostrarPlan(planActual); reiniciarContextoChat();
     await verDatos();
-  } catch (e) { estado('No pude recuperar esa consulta.', true); }
+  } catch (e) { estado('No se pudo recuperar esa consulta.', true); }
   finally { recuperandoHistorial = false; botones.forEach(b => { b.disabled = false; }); }
 }
 let vistaDatos = null;
@@ -2013,7 +2070,7 @@ function renderizarTabla(d){
 function generarGraficas(){
   if(!vistaDatos || !vistaDatos.filas.length)return;
   try{vaciar($('grafica'));mostrarGrafica(vistaDatos);graficaGenerada=true;$('tabGrafica').hidden=false;seleccionarResultado('grafica');$('tabGrafica').focus();}
-  catch(e){estado('No pude generar la gráfica. Tus datos siguen disponibles en la tabla.',true);seleccionarResultado('tabla');}
+  catch(e){estado('No se pudo generar la gráfica. Tus datos siguen disponibles en la tabla.',true);seleccionarResultado('tabla');}
 }
 const MEDIDAS_CONSULTA={
   produccion:{titulo:'Producción total',variables:['A111A'],nombres:['A111A Producción bruta total (millones de pesos)'],nota:'Se compara el valor total de la producción, en millones de pesos.'},
@@ -2054,7 +2111,7 @@ async function enviarRecuperacion(e){
   try{const r=await post('/api/cuenta/'+(tokenRecuperacion?'restablecer':'recuperar'),tokenRecuperacion?{token:tokenRecuperacion,clave:$('nuevaClave').value}:{correo:$('recuperarCorreo').value});const d=await r.json();
     if(d.csrf)csrfToken=d.csrf;$('estadoRecuperacion').textContent=d.error||d.mensaje;
     if(r.ok && tokenRecuperacion){tokenRecuperacion=null;$('nuevaClave').value='';$('confirmarClave').value='';$('dialogoRecuperacion').close();await cargarCuenta();abrirCuenta('entrar');$('estadoCuenta').textContent=d.mensaje;}
-  }catch(e){$('estadoRecuperacion').textContent='No pude conectar. Intenta de nuevo.';}finally{$('enviarRecuperacion').disabled=!tokenRecuperacion && !recuperacionDisponible;}
+  }catch(e){$('estadoRecuperacion').textContent='No se pudo conectar. Intenta de nuevo.';}finally{$('enviarRecuperacion').disabled=!tokenRecuperacion && !recuperacionDisponible;}
 }
 function detectarRecuperacion(){
   const m=location.hash.match(/^#recuperar=([A-Za-z0-9_-]{43})$/);
@@ -2072,12 +2129,22 @@ function mensajeChat(rol, texto) {
 }
 function abrirChat() {
   $('panelChat').hidden = false; $('abrirChat').setAttribute('aria-expanded','true');
-  if (!$('mensajesChat').firstChild) mensajeChat('assistant','Soy Ari, tu guía para entender los datos. Vamos paso a paso: ¿qué te gustaría aclarar?');
+  if (!$('mensajesChat').firstChild) mensajeChat('assistant','Ari · guía para entender los datos de ARAMZ. ¿Qué parte de la consulta requiere una explicación?');
   $('preguntaChat').focus();
 }
 let topPendienteAri = null;
 function normalizarAri(t){return t.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
-function explicarVistaAri(pregunta) { const q=normalizarAri(pregunta); if (/\btop\s*\d+\b/.test(q)) return null; if(!/que (?:estoy viendo|veo|hay en (?:la )?pantalla)|explica(?:me)? (?:lo que (?:veo|estoy viendo)|(?:esta|la) (?:tabla|grafica)|(?:estos|los) resultados)/.test(q)) return null; if(!$('panelHistorial').hidden) return 'Estás en Mis consultas: aquí aparecen los filtros de las consultas que guardaste, con sus nombres, etiquetas y carpetas. Usar consulta vuelve a cargar sus datos; Actualizar y usar conserva los filtros y consulta el año más reciente disponible en los catálogos del sitio.'; const p=planActual; if(!p) return 'Todavía no hay una consulta interpretada. Escribe el lugar, año y dato que necesitas; al interpretar aparecerán los filtros que entendió la página.'; const lista=(v)=>Array.isArray(v)&&v.length?v.slice(0,4).join(' · ')+(v.length>4?' y '+(v.length-4)+' más':''):'sin seleccionar'; const filtros='Lugar: '+lista(p.lugares_txt)+'. Año: '+lista(p.anios_txt||p.anios)+'. Actividades: '+lista(p.actividades_txt)+'. Estratos: '+lista(p.estratos_txt)+'.'; if(!vistaDatos || !vistaDatos.filas.length) return 'Estás viendo los filtros que entendió la página, todavía sin resultados del SAIC.\n'+filtros+'\nDatos solicitados: '+lista(p.variables_txt||p.variables)+'.\n'+(p.listo?'Pulsa Ver datos para obtener las cifras.':'Falta completar o aclarar la consulta antes de obtener las cifras.'); const d=vistaDatos, grafica=graficaGenerada&&!$('grafica').hidden; const {filas,vars}=filasObjeto(d); let textos=['Estás en '+(grafica?'Gráficas':'Tabla')+': '+d.filas.length+' filas de tu consulta'+(datosChat&&datosChat.filas.length>d.filas.length?' (la consulta completa tiene '+datosChat.filas.length+'; ahora ves una selección)':'')+'.',filtros]; textos.push('Cada fila corresponde a una combinación de lugar, año, actividad y, si lo pediste, estrato. Las columnas muestran las medidas de esa combinación.'); if(d.respuesta)textos.push('Resultado de esta vista: '+d.respuesta); const normal=s=>String(s).replace(/\|/g,' · ').replace(/\s+/g,' ').trim(); let indices=vars.map((v,i)=>i); if(grafica&&vistaGrafica){const i=vars.findIndex(v=>normal(v)===normal(vistaGrafica.variable));if(i>=0)indices=[i];textos.push('La gráfica compara '+vistaGrafica.variable+' por '+String(vistaGrafica.eje||'los grupos seleccionados').toLowerCase()+'.'+(vistaGrafica.colores&&vistaGrafica.colores!=='Ninguno'?' Los colores separan '+String(vistaGrafica.colores).toLowerCase()+'.':''));} const definiciones={K000A:'lo que gastaron los negocios en bienes y servicios para funcionar',I000A:'personas que trabajaron para los negocios sin depender de su razón social',H001A:'personas ocupadas en los negocios consultados',A111A:'valor de la producción de los negocios',A131A:'valor que los negocios añadieron mediante su actividad',UE:'unidades económicas de las actividades consultadas'}; for(const i of indices.slice(0,5)){ const nombre=vars[i],clave=nombre.split(/[| ·:]/)[0], dinero=/millones de pesos/i.test(nombre),porPersona=/por persona|por trabajador/i.test(nombre); const descripcion=/^Productividad/i.test(nombre)?'valor agregado dividido entre las personas ocupadas':/^Producción por persona/i.test(nombre)?'producción total dividida entre las personas ocupadas':definiciones[clave]||nombre; const unidad=dinero?'millones de pesos'+(porPersona?' por persona ocupada':''):/personal|personas|H001A|I000A/i.test(nombre)?'personas':clave==='UE'?'unidades económicas':''; const etiqueta=f=>[f.anio,f.lugar,f.act,f.estrato==='Sin estrato'?'':f.estrato].filter(Boolean).join(' · '); const disponibles=filas.filter(f=>f.vals[i]!==null); textos.push(nombre+': '+descripcion+'.'+(dinero?' Se expresa en '+unidad+'; 1 equivale a un millón de pesos'+(porPersona?' por persona ocupada':'')+'.':'')); for(const f of disponibles.slice(0,2))textos.push('• '+etiqueta(f)+': '+numTxt(f.vals[i])+(unidad?' '+unidad:'')+'.'); if(!disponibles.length)textos.push('No hay valores disponibles de esta medida en las filas que ves.'); const grupos=new Set(filas.map(f=>[f.anio,f.lugar,f.estrato].join('\u001f'))); if(disponibles.length>2&&grupos.size===1&&new Set(filas.map(f=>f.act)).size===filas.length){const mayor=disponibles.reduce((a,b)=>a.vals[i]>=b.vals[i]?a:b);const empates=disponibles.filter(f=>f.vals[i]===mayor.vals[i]).length;textos.push((empates>1?'Hay '+empates+' actividades empatadas con el mayor valor disponible':'El mayor valor disponible de esta medida es '+mayor.act)+': '+numTxt(mayor.vals[i])+(unidad?' '+unidad:'')+'.');} const vacios=filas.length-disponibles.length;if(vacios)textos.push('En esta medida hay '+vacios+' filas con —: no tienen un valor disponible y no se cuentan como cero.'); } if(indices.length>5)textos.push('La tabla también contiene '+(indices.length-5)+' medidas más; puedes preguntarme por una columna concreta.'); return textos.join('\n'); } function esExplicacionAri(q){return /que (?:es|significa)|que significan|explica|como se calcula|que estoy viendo/.test(q);}
+function explicarPorcentajesAri(pregunta) {
+  if(!/porcentaj|participacion/.test(normalizarAri(pregunta))||/\btop\s*\d+\b/.test(normalizarAri(pregunta)))return null;
+  if(!vistaDatos||!vistaDatos.filas.length)return 'Todavía no hay resultados cargados. La participación porcentual relaciona un valor con el total de valores disponibles del mismo año y de la misma medida; no representa necesariamente el total estatal o nacional.';
+  const d=vistaDatos, ip=d.columnas.findIndex(c=>/%|participaci[oó]n/i.test(c));
+  if(ip>=0){const f=d.filas.find(f=>numeroSAIC(f[ip])!==null);if(!f)return 'La columna de participación está presente, pero no hay porcentajes disponibles en las filas mostradas. Los datos faltantes no son ceros.';const ids=d.columnas.map((c,i)=>/año|anio|ano|entidad|estado|municipio|actividad|sector/i.test(c)?i:-1).filter(i=>i>=0);return 'La columna '+d.columnas[ip].replace('|',' · ')+' muestra la participación de cada fila en la suma de los valores disponibles consultados del mismo año. Por ejemplo, '+ids.map(i=>f[i]).join(' · ')+' representa '+numTxt(numeroSAIC(f[ip]))+' % de ese total. El cálculo usa la consulta completa antes de recortar un top. No equivale necesariamente al total estatal o nacional, y los datos faltantes no se consideran ceros.';}
+  const {vars}=filasObjeto(d);let texto='En esta vista no se muestran porcentajes. Las columnas que se ven son: '+vars.join('; ')+'.';
+  if(planActual&&['productividad','produccion_por_persona'].includes(planActual.analisis))return texto+' La medida por persona es un cociente, no una participación: sumar esos cocientes para obtener porcentajes no tiene sentido.';
+  return texto+(vars.length>1?' Hay varias medidas; cada una tendría su propio total. Para comparar participaciones debe elegirse una medida.':' Una participación indicaría qué parte de la suma de los valores disponibles del mismo año representa cada fila.')+' Este botón explica los porcentajes; no añade una columna ni cambia los datos.';
+}
+function explicarVistaAri(pregunta) { const q=normalizarAri(pregunta); if (/\btop\s*\d+\b/.test(q)) return null; if(!/que (?:estoy viendo|veo|hay en (?:la )?pantalla)|explica(?:me)? (?:lo que (?:veo|estoy viendo)|(?:esta|la) (?:tabla|grafica)|(?:estos|los) resultados)/.test(q)) return null; if(!$('panelHistorial').hidden) return 'Estás en Mis consultas: aquí aparecen los filtros de las consultas que guardaste, con sus nombres, etiquetas y carpetas. Usar consulta vuelve a cargar sus datos; Actualizar y usar conserva los filtros y consulta el año más reciente disponible en los catálogos del sitio.'; const p=planActual; if(!p) return 'Todavía no hay una consulta interpretada. Escribe el lugar, año y dato que necesitas; al interpretar aparecerán los filtros que entendió la página.'; const lista=(v)=>Array.isArray(v)&&v.length?v.slice(0,4).join(' · ')+(v.length>4?' y '+(v.length-4)+' más':''):'sin seleccionar'; const filtros='Lugar: '+lista(p.lugares_txt)+'. Año: '+lista(p.anios_txt||p.anios)+'. Actividades: '+lista(p.actividades_txt)+'. Estratos: '+lista(p.estratos_txt)+'.'; if(!vistaDatos || !vistaDatos.filas.length) return 'Estás viendo los filtros que entendió la página, todavía sin resultados del SAIC.\n'+filtros+'\nDatos solicitados: '+lista(p.variables_txt||p.variables)+'.\n'+(p.listo?'Pulsa Ver datos para obtener las cifras.':'Falta completar o aclarar la consulta antes de obtener las cifras.'); const d=vistaDatos, grafica=graficaGenerada&&!$('grafica').hidden; const {filas,vars}=filasObjeto(d); let textos=['Estás en '+(grafica?'Gráficas':'Tabla')+': '+d.filas.length+' filas de tu consulta'+(datosChat&&datosChat.filas.length>d.filas.length?' (la consulta completa tiene '+datosChat.filas.length+'; ahora ves una selección)':'')+'.',filtros]; textos.push('Cada fila corresponde a una combinación de lugar, año, actividad y, si lo pediste, estrato. Las columnas muestran las medidas de esa combinación.'); if(d.respuesta)textos.push('Resultado de esta vista: '+d.respuesta); const normal=s=>String(s).replace(/\|/g,' · ').replace(/\s+/g,' ').trim(); let indices=vars.map((v,i)=>i); if(grafica&&vistaGrafica){const i=vars.findIndex(v=>normal(v)===normal(vistaGrafica.variable));if(i>=0)indices=[i];textos.push('La gráfica compara '+vistaGrafica.variable+' por '+String(vistaGrafica.eje||'los grupos seleccionados').toLowerCase()+'.'+(vistaGrafica.colores&&vistaGrafica.colores!=='Ninguno'?' Los colores separan '+String(vistaGrafica.colores).toLowerCase()+'.':''));} const definiciones={K000A:'lo que gastaron los negocios en bienes y servicios para funcionar',I000A:'personas que trabajaron para los negocios sin depender de su razón social',H001A:'personas ocupadas en los negocios consultados',A111A:'valor de la producción de los negocios',A131A:'valor que los negocios añadieron mediante su actividad',UE:'unidades económicas de las actividades consultadas'}; for(const i of indices.slice(0,5)){ const nombre=vars[i],clave=nombre.split(/[| ·:]/)[0], dinero=/millones de pesos/i.test(nombre),porPersona=/por persona|por trabajador/i.test(nombre); const descripcion=/^Productividad/i.test(nombre)?'valor agregado dividido entre las personas ocupadas':/^Producción por persona/i.test(nombre)?'producción total dividida entre las personas ocupadas':definiciones[clave]||nombre; const unidad=dinero?'millones de pesos'+(porPersona?' por persona ocupada':''):/personal|personas|H001A|I000A/i.test(nombre)?'personas':clave==='UE'?'unidades económicas':''; const etiqueta=f=>[f.anio,f.lugar,f.act,f.estrato==='Sin estrato'?'':f.estrato].filter(Boolean).join(' · '); const disponibles=filas.filter(f=>f.vals[i]!==null); textos.push(nombre+': '+descripcion+'.'+(dinero?' Se expresa en '+unidad+'; 1 equivale a un millón de pesos'+(porPersona?' por persona ocupada':'')+'.':'')); for(const f of disponibles.slice(0,2))textos.push('• '+etiqueta(f)+': '+numTxt(f.vals[i])+(unidad?' '+unidad:'')+'.'); if(!disponibles.length)textos.push('No hay valores disponibles de esta medida en las filas que ves.'); const grupos=new Set(filas.map(f=>[f.anio,f.lugar,f.estrato].join('\u001f'))); if(disponibles.length>2&&grupos.size===1&&new Set(filas.map(f=>f.act)).size===filas.length){const mayor=disponibles.reduce((a,b)=>a.vals[i]>=b.vals[i]?a:b);const empates=disponibles.filter(f=>f.vals[i]===mayor.vals[i]).length;textos.push((empates>1?'Hay '+empates+' actividades empatadas con el mayor valor disponible':'El mayor valor disponible de esta medida es '+mayor.act)+': '+numTxt(mayor.vals[i])+(unidad?' '+unidad:'')+'.');} const vacios=filas.length-disponibles.length;if(vacios)textos.push('En esta medida hay '+vacios+' filas con —: no tienen un valor disponible y no se cuentan como cero.'); } if(indices.length>5)textos.push('La tabla también contiene '+(indices.length-5)+' medidas más; puedes preguntarme por una columna concreta.'); return textos.join('\n'); }
+function esExplicacionAri(q){return /que (?:es|significa)|que significan|explica|como se calcula|que estoy viendo/.test(q);}
 function variablePedidaAri(q){
   const codigo=q.match(/\b(?:ue|[a-z]\d{3}[a-z])\b/i);if(codigo)return codigo[0].toUpperCase();
   if(/personal ocupado|trabajadores/.test(q))return 'H001A';
@@ -2097,9 +2164,9 @@ function pedirVariableTop(pregunta){
     };$('opcionesAccionChat').appendChild(b);
   });
 }
-function aplicarTopVisibleAri(filas,n,columna){
+function aplicarTopVisibleAri(filas,n,columna,menores=false){
   const estabaGrafica=graficaGenerada && !$('grafica').hidden;
-  vistaDatos={...datosChat,filas:filas.map(r=>r.f),respuesta:'Top '+n+' de los resultados consultados, según '+columna.replace('|',' · ')+'.'};
+  vistaDatos={...datosChat,filas:filas.map(r=>r.f),respuesta:'Top '+n+' de los valores '+(menores?'más bajos':'más altos')+' disponibles de la consulta, según '+columna.replace('|',' · ')+'.' };
   renderizarTabla(vistaDatos);
   if(graficaGenerada){vaciar($('grafica'));mostrarGrafica(vistaDatos);}
   seleccionarResultado(estabaGrafica?'grafica':'tabla');
@@ -2108,11 +2175,11 @@ async function accionAri(pregunta){
   const q=normalizarAri(pregunta);if(esExplicacionAri(q))return false;
   if(/(?:genera|mostrar|muestra|abre|ver).*(?:grafica|grafico)/.test(q)){
     if(!vistaDatos){mensajeChat('assistant','Primero pulsa Ver datos para que pueda generar la gráfica.');return true;}
-    generarGraficas();mensajeChat('assistant',graficaGenerada?'Abrí la pestaña Gráficas con los datos de tu consulta.':'No pude generar la gráfica; los datos siguen en la tabla.');return true;
+    generarGraficas();mensajeChat('assistant',graficaGenerada?'Se abrió la pestaña Gráficas con los datos de tu consulta.':'No se pudo generar la gráfica; los datos siguen en la tabla.');return true;
   }
   if(/(?:muestra|mostrar|abre|ver).*(?:tabla|todos los resultados|todos los datos)/.test(q)){
     if(!datosChat){mensajeChat('assistant','Primero pulsa Ver datos.');return true;}
-    vistaDatos=datosChat;renderizarTabla(vistaDatos);if(graficaGenerada){vaciar($('grafica'));mostrarGrafica(vistaDatos);}seleccionarResultado('tabla');mensajeChat('assistant','Volví a mostrar todos los datos de la consulta en la pestaña Tabla.');return true;
+    vistaDatos=datosChat;renderizarTabla(vistaDatos);if(graficaGenerada){vaciar($('grafica'));mostrarGrafica(vistaDatos);}seleccionarResultado('tabla');mensajeChat('assistant','Se volvieron a mostrar todos los datos de la consulta en la pestaña Tabla.');return true;
   }
   let modo=null;
   if(/produccion/.test(q)&&/por trabajador|por persona|respecto.*personal/.test(q))modo='produccion_por_persona';
@@ -2121,14 +2188,14 @@ async function accionAri(pregunta){
   if(modo && /(?:cambia|compara|usa|usar|mide|calcula|ordena)/.test(q) && planActual){
     if(consultaEnCurso){mensajeChat('assistant','Espera a que termine la consulta actual.');return true;}
     cambiarMedida(modo);await verDatos();mensajeChat('user',pregunta);
-    mensajeChat('assistant',datosChat?'Actualicé la consulta con '+MEDIDAS_CONSULTA[modo].titulo.toLowerCase()+'. Conservé los lugares, años y actividades.':'No pude obtener los datos. Revisa el mensaje de la consulta.');return true;
+    mensajeChat('assistant',datosChat?'Se actualizó la consulta con '+MEDIDAS_CONSULTA[modo].titulo.toLowerCase()+'. Se conservaron los lugares, años y actividades.':'No se pudo obtener los datos. Revisa el mensaje de la consulta.');return true;
   }
   if(/\b(?:marca|desmarca|quita|agrega|incluye)\b/.test(q) && /\bue\b|unidades economicas/.test(q)){
     if(!planActual){mensajeChat('assistant','Primero interpreta una consulta para que pueda cambiar esa selección.');return true;}
     if(consultaEnCurso){mensajeChat('assistant','Espera a que termine la consulta actual.');return true;}
     const r=await post('/api/interpretar',{texto:pregunta,plan:planActual});const d=await r.json();
-    if(!r.ok){mensajeChat('assistant',d.error||'No pude cambiar la selección.');return true;}
-    planActual=d;mostrarPlan(d);reiniciarContextoChat();limpiarResultados();mensajeChat('user',pregunta);mensajeChat('assistant','Actualicé la selección de unidades económicas. Pulsa Ver datos para consultar con este cambio.');return true;
+    if(!r.ok){mensajeChat('assistant',d.error||'No se pudo cambiar la selección.');return true;}
+    planActual=d;mostrarPlan(d);reiniciarContextoChat();limpiarResultados();mensajeChat('user',pregunta);mensajeChat('assistant','Se actualizó la selección de unidades económicas. Pulsa Ver datos para consultar con este cambio.');return true;
   }
   return false;
 }
@@ -2149,20 +2216,22 @@ function pedidoTopAri(pregunta) {
   if(iv<0 && planActual && ['productividad','produccion_por_persona'].includes(planActual.analisis))iv=cols.findIndex(c=>/^Productividad|^Producción por persona/.test(c));
   if(iv<0 && planActual && planActual.variables.length>1){pedirVariableTop(pregunta);return '¿Por cuál variable quieres ordenar las actividades? Elige una de las opciones.';}
   if (iv < 0) iv = cols.findIndex(c => planActual && planActual.variables.some(v => c.split(/[| ·:]/)[0] === v));
-  if (iv < 0) return 'No encuentro una columna numérica para ordenar. Dime qué variable quieres comparar.';
-  const filas = datosChat.filas.map(f => ({f, valor:numeroSAIC(f[iv])})).filter(r => r.valor !== null).sort((a,b) => b.valor-a.valor);
+  if (iv < 0) return 'No se encontró una columna numérica para ordenar. Dime qué variable quieres comparar.';
+  const menores = /\b(?:peor(?:es)?|menor(?:es)?|menos|mas baj[oa]s?|ultim[oa]s?)\b/.test(q);
+  const filas = datosChat.filas.map(f => ({f, valor:numeroSAIC(f[iv])})).filter(r => r.valor !== null).sort((a,b) => menores ? a.valor-b.valor : b.valor-a.valor);
   if (!filas.length) return 'No hay valores disponibles para elaborar ese top.';
   if (dimension >= 0 && /actividades|sectores/.test(q) && new Set(filas.map(r => String(r.f[dimension]))).size !== filas.length) return 'Hay varias filas por actividad, de distintos lugares, años o estratos. Consulta un solo lugar, año y estrato para comparar actividades sin mezclar sus datos.';
   const ids = cols.map((c,i) => /actividad|sector|entidad|estado|municipio|año|anio/i.test(c) ? i : -1).filter(i => i >= 0);
   topPendienteAri=null;$('opcionesAccionChat').hidden=true;
-  aplicarTopVisibleAri(filas.slice(0,Number(m[1])),Number(m[1]),cols[iv]);
-  return 'Aquí tienes el top ' + m[1] + ' de los datos de la tabla visible, según ' + cols[iv].replace('|',' · ') + ':\n' + filas.slice(0,Number(m[1])).map((r,i) => (i+1) + '. ' + ids.map(j => r.f[j]).join(' · ') + ': ' + numTxt(r.valor)).join('\n');
+  aplicarTopVisibleAri(filas.slice(0,Number(m[1])),Number(m[1]),cols[iv],menores);
+  return 'Se muestran los resultados del top ' + m[1] + ' de los valores '+(menores?'más bajos':'más altos')+' disponibles (se ordenan los datos completos de la consulta), según ' + cols[iv].replace('|',' · ') + ':\n' + filas.slice(0,Number(m[1])).map((r,i) => (i+1) + '. ' + ids.map(j => r.f[j]).join(' · ') + ': ' + numTxt(r.valor)).join('\n');
 }
 async function enviarChat(e) {
   e.preventDefault(); if($('enviarChat').disabled || consultaEnCurso){$('estadoChat').textContent='Espera a que termine la operación actual.';return;} const pregunta = $('preguntaChat').value.trim(); if (!pregunta) return;
   $('enviarChat').disabled=true;
-  try { if(await accionAri(pregunta)){ $('preguntaChat').value=''; return; } } catch(e){mensajeChat('assistant','No pude completar esa acción. Intenta de nuevo.');return;}finally{$('enviarChat').disabled=false;}
-  const vistaLocal = explicarVistaAri(pregunta); if (vistaLocal !== null) { mensajeChat('user', pregunta); mensajeChat('assistant', vistaLocal); charla.push({rol:'user',texto:pregunta},{rol:'assistant',texto:vistaLocal}); charla=charla.slice(-6); $('preguntaChat').value=''; $('estadoChat').textContent='Ari explicó los filtros y las filas que ves en esta vista.'; return; }   const topLocal = pedidoTopAri(pregunta);
+  try { if(await accionAri(pregunta)){ $('preguntaChat').value=''; return; } } catch(e){mensajeChat('assistant','No se pudo completar esa acción. Intenta de nuevo.');return;}finally{$('enviarChat').disabled=false;}
+  const vistaLocal = explicarPorcentajesAri(pregunta) ?? explicarVistaAri(pregunta); if (vistaLocal !== null) { mensajeChat('user', pregunta); mensajeChat('assistant', vistaLocal); charla.push({rol:'user',texto:pregunta},{rol:'assistant',texto:vistaLocal}); charla=charla.slice(-6); $('preguntaChat').value=''; $('estadoChat').textContent='Ari explicó los filtros y las filas que ves en esta vista.'; return; }
+  const topLocal = pedidoTopAri(pregunta);
   if (topLocal !== null) { mensajeChat('user', pregunta); mensajeChat('assistant', topLocal); $('preguntaChat').value = ''; return; }
   $('enviarChat').disabled = true; $('estadoChat').textContent = 'Preparando una explicación…';
   mensajeChat('user', pregunta); $('preguntaChat').value = '';
@@ -2172,11 +2241,11 @@ async function enviarChat(e) {
     const r = await post('/api/chat', { pregunta, contexto: contextoSolicitado, plan: planSolicitado, vista: vistaGrafica, mensajes: charla.slice(-6) });
     const d = await r.json();
     if (contextoSolicitado !== contextoChat || planSolicitado !== planActual) { $('estadoChat').textContent = 'La consulta cambió mientras respondía. Haz la pregunta de nuevo.'; return; }
-    if (!r.ok) { $('estadoChat').textContent = d.error || 'No pude responder.'; return; }
+    if (!r.ok) { $('estadoChat').textContent = d.error || 'No se pudo responder.'; return; }
     mensajeChat('assistant', d.respuesta);
     charla.push({ rol:'user', texto:pregunta }, { rol:'assistant', texto:d.respuesta }); charla = charla.slice(-6);
-    $('estadoChat').textContent = d.usa_ia ? 'Ari respondió con Claude. Puedes verificar las cifras en la tabla.' : 'Ari usó las definiciones y reglas del sitio.';
-  } catch (e) { $('estadoChat').textContent = 'No pude conectar con el asistente. Intenta de nuevo.'; }
+    $('estadoChat').textContent = d.usa_ia ? 'Se obtuvo una explicación. Las cifras pueden verificarse en la tabla.' : 'Ari usó las definiciones y reglas del sitio.';
+  } catch (e) { $('estadoChat').textContent = 'No se pudo conectar con el asistente. Intenta de nuevo.'; }
   finally { $('enviarChat').disabled = false; }
 }
 
@@ -2208,7 +2277,7 @@ async function enviarReporte() {
   const r = await post('/api/reportar', { comentario, tipo: $('tipoReporte').value, texto: $('texto').value, plan: p });
   const d = await r.json().catch(() => ({}));
   if (r.ok) { $('estadoReporte').style.color = '#1d6b3a'; $('estadoReporte').textContent = '¡Gracias! Tu reporte se guardó.'; $('comentario').value = ''; }
-  else { $('estadoReporte').style.color = ''; $('estadoReporte').textContent = d.error || 'No pude guardar el reporte.'; }
+  else { $('estadoReporte').style.color = ''; $('estadoReporte').textContent = d.error || 'No se pudo guardar el reporte.'; }
 }
 function linea(padre, etiqueta, valores) {
   const p = document.createElement('p'), b = document.createElement('strong');
@@ -2223,9 +2292,9 @@ function mensajes(padre, prefijo, lista, clase) {
 function insignia(d) {
   const s = document.createElement('span');
   s.className = 'badge ' + (d.usa_ia ? 'ia' : 'reglas');
-  s.textContent = d.usa_ia ? 'Con ayuda de IA · revisa que sea lo que querías' : 'Entendido por reglas, sin IA';
-  s.title = d.usa_ia ? 'Una parte de tu frase se interpretó con Gemini; todo se validó contra los catálogos del SAIC.'
-                     : 'Se entendió con reglas fijas: no hubo llamada a la IA.';
+  s.textContent = d.usa_ia ? 'Interpretación automática · revisa que sea lo solicitado' : 'Interpretación por reglas';
+  s.title = d.usa_ia ? 'Una parte de la consulta requirió interpretación automática; los filtros se validaron contra los catálogos del SAIC.'
+                     : 'Se interpretó con las reglas del sitio.';
   return s;
 }
 
@@ -2265,7 +2334,7 @@ function elegir(o, c) {
 
 function mostrarPlan(d) {
   const caja = $('plan'); vaciar(caja); caja.hidden = false;
-  const h = document.createElement('strong'); h.textContent = 'Esto entendí:'; caja.appendChild(h); caja.appendChild(insignia(d));
+  const h = document.createElement('strong'); h.textContent = 'Interpretación de la consulta:'; caja.appendChild(h); caja.appendChild(insignia(d));
   linea(caja, 'Años', d.anios_txt);
   linea(caja, 'Lugares', d.lugares_txt.length ? d.lugares_txt : ['(falta)']);
   linea(caja, 'Variables', d.variables_txt.length ? d.variables_txt : ['(faltan)']);
@@ -2297,7 +2366,7 @@ async function interpretar() {
     const r = await post('/api/interpretar', { texto, plan: planActual, opciones: { metrica: 'auto' } }); const d = await r.json();
     if (!r.ok) { estado(d.error || 'Ocurrió un error.', true); return; }
     planActual = d; mostrarPlan(d); estado(''); if (d.listo && ['produccion','productividad','produccion_por_persona'].includes(d.analisis)) await verDatos();
-  } catch (e) { estado('No pude conectar con el servidor.', true); }
+  } catch (e) { estado('No se pudo conectar con el servidor.', true); }
   finally { $('btnInterpretar').disabled = false; }
 }
 
@@ -2306,7 +2375,7 @@ function formato(v) {
   return typeof v === 'number' ? v.toLocaleString('es-MX') : String(v);
 }
 
-async function seguirConsulta(trabajo, inicioEspera) { const limite = inicioEspera + 300000; for (let intento = 0; intento < 6; intento++) { const restante = limite - Date.now(); if (restante <= 0) throw new Error('La consulta está tardando demasiado. Espera un momento antes de reintentar.'); const control = new AbortController(); const temporizador = setTimeout(() => control.abort(), Math.min(20000, restante)); try { const r = await post('/api/consultas/' + encodeURIComponent(trabajo) + '/resultado', {}, control.signal); const d = await r.json().catch(() => null); if (r.status === 401 || r.status === 403) return {r, d: d || {error: 'La sesión de la página venció. Recárgala e intenta de nuevo.'}}; if (d && typeof d.error === 'string') return {r, d}; if (d && d.ok === true && ((r.status === 202 && d.pendiente === true) || (r.status === 200 && (Array.isArray(d.filas) && Array.isArray(d.columnas) || d.vacio || d.demasiado_grande)))) return {r, d}; if (!r.ok && ![408, 429, 500, 502, 503, 504].includes(r.status)) return {r, d: {error: 'No pude recuperar la consulta. Vuelve a pulsar Ver datos.'}}; } catch (e) { } finally { clearTimeout(temporizador); } if (intento === 5 || Date.now() >= limite) break; estado('Se interrumpió la conexión. Estoy recuperando tu consulta; no necesitas volver a pulsar Ver datos.'); await new Promise(resolve => setTimeout(resolve, Math.min(1500 * (intento + 1), 6000, Math.max(0, limite - Date.now())))); } throw new Error('No pude recuperar el resultado tras varios intentos. Espera un momento y vuelve a pulsar Ver datos.'); }  let trabajoConsulta=null;
+async function seguirConsulta(trabajo, inicioEspera) { const limite = inicioEspera + 300000; for (let intento = 0; intento < 6; intento++) { const restante = limite - Date.now(); if (restante <= 0) throw new Error('La consulta está tardando demasiado. Espera un momento antes de reintentar.'); const control = new AbortController(); const temporizador = setTimeout(() => control.abort(), Math.min(20000, restante)); try { const r = await post('/api/consultas/' + encodeURIComponent(trabajo) + '/resultado', {}, control.signal); const d = await r.json().catch(() => null); if (r.status === 401 || r.status === 403) return {r, d: d || {error: 'La sesión de la página venció. Recárgala e intenta de nuevo.'}}; if (d && typeof d.error === 'string') return {r, d}; if (d && d.ok === true && ((r.status === 202 && d.pendiente === true) || (r.status === 200 && (Array.isArray(d.filas) && Array.isArray(d.columnas) || d.vacio || d.demasiado_grande)))) return {r, d}; if (!r.ok && ![408, 429, 500, 502, 503, 504].includes(r.status)) return {r, d: {error: 'No se pudo recuperar la consulta. Vuelve a pulsar Ver datos.'}}; } catch (e) { } finally { clearTimeout(temporizador); } if (intento === 5 || Date.now() >= limite) break; estado('Se interrumpió la conexión. Se está recuperando tu consulta; no necesitas volver a pulsar Ver datos.'); await new Promise(resolve => setTimeout(resolve, Math.min(1500 * (intento + 1), 6000, Math.max(0, limite - Date.now())))); } throw new Error('No se pudo recuperar el resultado tras varios intentos. Espera un momento y vuelve a pulsar Ver datos.'); }  let trabajoConsulta=null;
 async function verDatos() {
   if (!planActual || consultaEnCurso) return;
   consultaEnCurso = true; trabajoConsulta = null; reiniciarContextoChat(); limpiarResultados();
@@ -2333,7 +2402,7 @@ async function verDatos() {
     contextoChat = d.contexto || null; datosChat = d;
     vistaDatos = d; renderizarTabla(d); seleccionarResultado('tabla'); estado(d.filas.length + ' filas.');
     if (cuentaUsuario && !$('panelHistorial').hidden) await cargarHistorial();
-  } catch (e) { estado('No pude conectar con el servidor.', true); }
+  } catch (e) { estado('No se pudo conectar con el servidor.', true); }
   finally {
     trabajoConsulta = null; consultaEnCurso = false; $('btnInterpretar').disabled = false;
     controlesPlan.forEach(c => { c.disabled = false; });
@@ -2358,7 +2427,7 @@ async function descargar(url, respaldo, mensaje) {
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
     a.download = m ? m[1] : respaldo; document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(a.href); estado(r.headers.get('X-Historial-Error') === '1' ? 'Descarga lista; no pude guardar la consulta en tu historial.' : (r.headers.get('X-Consulta-Guardada') === '1' ? 'Descarga lista. Consulta guardada en Mis consultas.' : ''));
-  } catch (e) { estado('No pude conectar con el servidor.', true); }
+  } catch (e) { estado('No se pudo conectar con el servidor.', true); }
   finally {descargaEnCurso=false;botonesDescarga.forEach(b=>b.disabled=!planActual?.listo);}
 }
 
@@ -2609,7 +2678,10 @@ $('salirCuenta').onclick = () => { cerrarMenuCuenta(); salirCuenta(); };
 $('abrirHistorial').onclick = () => { cerrarMenuCuenta(); cargarHistorial(); };
 $('cerrarHistorial').onclick = () => { mostrarVistaHistorial(false); };
 $('abrirChat').onclick = abrirChat;
-$('cerrarChat').onclick = () => { $('panelChat').hidden = true; $('abrirChat').setAttribute('aria-expanded','false'); $('abrirChat').focus(); };
+function cerrarChat(devolverFoco=false) { $('panelChat').hidden=true; $('abrirChat').setAttribute('aria-expanded','false'); if(devolverFoco)$('abrirChat').focus(); }
+$('cerrarChat').onclick=()=>cerrarChat(true);
+document.addEventListener('click',e=>{if(!$('panelChat').hidden&&!$('panelChat').contains(e.target)&&!$('abrirChat').contains(e.target))cerrarChat();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('panelChat').hidden)cerrarChat(true);});
 $('formChat').onsubmit = enviarChat;
 // Enter se gestiona en un solo lugar para evitar envíos duplicados.
 document.querySelectorAll('[data-pregunta]').forEach(b => { b.onclick = () => { $('preguntaChat').value = b.dataset.pregunta; if (!$('enviarChat').disabled) $('formChat').requestSubmit(); }; });

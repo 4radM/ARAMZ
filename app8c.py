@@ -762,7 +762,7 @@ def responder_con_claude(contexto, definiciones, pregunta, mensajes):
     except requests.Timeout:
         raise ErrorAri('La explicación está tardando más de lo esperado. Intenta de nuevo en un momento.') from None
     except requests.RequestException:
-        raise ErrorAri('No pude conectar con mi motor de conversación. Puedes seguir consultando los datos e intentar de nuevo después.') from None
+        raise ErrorAri('No se pudo conectar con mi motor de conversación. Puedes seguir consultando los datos e intentar de nuevo después.') from None
     if r.status_code == 429:
         raise ErrorAri('Mi motor de conversación está recibiendo muchas preguntas. Intenta de nuevo en un momento; tus consultas de datos siguen disponibles.', 429)
     if r.status_code in (401, 403):
@@ -778,9 +778,9 @@ def responder_con_claude(contexto, definiciones, pregunta, mensajes):
         texto = '\n'.join(b['text'] for b in cuerpo['content']
                           if isinstance(b, dict) and b.get('type') == 'text' and isinstance(b.get('text'), str)).strip()
     except (ValueError, KeyError, TypeError):
-        raise ErrorAri('No pude preparar una explicación clara. Intenta reformular tu pregunta.') from None
+        raise ErrorAri('No se pudo preparar una explicación clara. Intenta reformular tu pregunta.') from None
     if not texto:
-        raise ErrorAri('No pude preparar una explicación clara. Intenta reformular tu pregunta.')
+        raise ErrorAri('No se pudo preparar una explicación clara. Intenta reformular tu pregunta.')
     if cuerpo.get('stop_reason') == 'max_tokens':
         texto += '\n\nSi quieres, puedo continuar con una pregunta más específica.'
     return texto[:6000]
@@ -948,7 +948,7 @@ def api_chat():
         if directa:
             return jsonify(ok=True, respuesta=directa, usa_ia=False, motor='reglas', asistente='Ari')
         if not os.environ.get('ANTHROPIC_API_KEY', '').strip():
-            return jsonify(ok=True, usa_ia=False, motor='reglas', asistente='Ari', respuesta='No puedo responder esa pregunta abierta ahora. Sí puedo ordenar los datos de tu tabla, cambiar la medida de comparación o generar su gráfica. Dime qué quieres hacer.')
+            return jsonify(ok=True, usa_ia=False, motor='reglas', asistente='Ari', respuesta='No se puede responder esa pregunta abierta ahora. Sí puedo ordenar los datos de tu tabla, cambiar la medida de comparación o generar su gráfica. Dime qué quieres hacer.')
         historial = cuerpo.get('mensajes') or []
         if not isinstance(historial, list):
             raise ValueError('La conversación no es válida.')
@@ -1375,7 +1375,7 @@ def api_reportar():
             "tipo": tipo, "comentario": comentario,
             "texto": str(cuerpo.get("texto", ""))[:MAX_TEXTO], "plan": plan_corto})
         if not guardado:
-            raise RuntimeError("No pude guardar el reporte. Intenta de nuevo.")
+            raise RuntimeError("No se pudo guardar el reporte. Intenta de nuevo.")
         return jsonify(ok=True)
     except Exception as e:
         return responder_error(e)
@@ -1625,7 +1625,7 @@ def excel_oficial_a_csv(contenido):
     try:
         df = pd.read_excel(io.BytesIO(contenido), header=4)
     except Exception:
-        raise RuntimeError("No pude leer el Excel oficial para convertirlo a CSV.")
+        raise RuntimeError("No se pudo leer el Excel oficial para convertirlo a CSV.")
     if df.shape[1] < 3 or not str(df.columns[0]).strip().lower().startswith("año"):
         raise RuntimeError("El Excel oficial tiene un formato distinto al esperado; "
                            "descarga el Excel oficial en su lugar.")

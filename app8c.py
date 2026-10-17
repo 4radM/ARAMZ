@@ -1,23 +1,4 @@
-"""
-aramz
 
-Requiere, en la MISMA carpeta: saic_motor3.py, saic_interprete7.py y catalogos/
-Instalación (una sola vez):   pip3 install flask
-Uso:                          python3 app8c.py
-Luego abre en el navegador:   http://127.0.0.1:8000
-
-Ari usa Claude para preguntas abiertas: configura ANTHROPIC_API_KEY en el servidor.
-La interpretación de consultas conserva Gemini. Su clave se lee de la variable de entorno GEMINI_API_KEY y vive solo
-en este servidor: nunca llega al navegador.
-
-Para compartirla con testers define un código de acceso (si no lo defines, la
-página queda abierta y debes usarla solo en tu computadora):
-    export CODIGO_ACCESO="el-codigo-que-les-des"
-
-Se crea la carpeta "registro/" con dos archivos que puedes revisar:
-    uso.jsonl        qué piden los testers y si funcionó
-    reportes.jsonl   lo que reportan con el botón "Reportar un problema"
-"""
 
 import contextlib
 import hashlib
